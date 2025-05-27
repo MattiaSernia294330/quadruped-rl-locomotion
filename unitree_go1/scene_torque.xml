@@ -28,8 +28,8 @@
 
     <!-- ——— Asset per terreno montano ——— -->
     <hfield name="mountain_hf"
-          file="mountain_heightmap.png"
-          size="512 512 100 0.001"/>
+          file="mountain_heightmap_prova2.png"
+          size="100 100 50 0.001"/>
   </asset>
 
   <worldbody>
