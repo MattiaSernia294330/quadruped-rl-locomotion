@@ -108,10 +108,10 @@ class Go1MujocoEnv(MujocoEnv):
 
         # Action: 12 torque values
         self._last_action = np.zeros(12)
-
+        self.objective_point=self.random_point()
         self._clip_obs_threshold = 100.0
         self.observation_space = spaces.Box(
-            low=-np.inf, high=np.inf, shape=self._get_obs().shape, dtype=np.float64
+            low=-np.inf, high=np.inf, shape=(self._get_obs().shape[0],), dtype=np.float64
         )
 
 
@@ -133,10 +133,10 @@ class Go1MujocoEnv(MujocoEnv):
             self.model, mujoco.mjtObj.mjOBJ_BODY.value, "trunk"
         )
 
-        self.objective_point=self.random_point()
+        
 
     def step(self, action):
-        old_position=np.array(self.state_vector()[0:3])
+        old_position=np.array(self.state_vector()[0:2])
         self._step += 1
         self.do_simulation(action, self.frame_skip)
 
@@ -270,15 +270,15 @@ class Go1MujocoEnv(MujocoEnv):
 
 
     def random_point(self):
-        z=self.get_maps_z(0,30)
-        return [0,30,z]
+        z=self.get_maps_z(30,0)
+        return [30,0]
 
     def _calc_reward(self, action, old_position):
         objective=np.array(self.objective_point)
         old_distance= np.linalg.norm(objective - old_position)
-        new_position= np.array(self.state_vector()[0:3])
+        new_position= np.array(self.state_vector()[0:2])
         new_distance=np.linalg.norm(objective - new_position)
-        reward= max(0.0,self.is_healthy*(new_distance-old_distance))
+        reward= self.is_healthy*(old_distance-new_distance)
 
         healthy_reward = self.healthy_reward * self.reward_weights["healthy"]
         ctrl_cost = self.torque_cost * self.cost_weights["torque"]
@@ -366,6 +366,7 @@ class Go1MujocoEnv(MujocoEnv):
         curr_obs = np.concatenate((position, velocity, desired_vel, last_action)).clip(
             -self._clip_obs_threshold, self._clip_obs_threshold
         )
+        curr_obs= np.concatenate([curr_obs, self.objective_point])
 
         return curr_obs
 
