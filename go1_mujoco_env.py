@@ -50,6 +50,8 @@ class Go1MujocoEnv(MujocoEnv):
             ],
             "render_fps": 60,
         }
+        self._distance_window = []
+        self._distance_window_size = 100
         self._last_render_time = -1.0
         self._max_episode_time_sec = 15.0
         self._step = 0
@@ -140,6 +142,16 @@ class Go1MujocoEnv(MujocoEnv):
         self._step += 1
         self.do_simulation(action, self.frame_skip)
 
+
+        # Track distance to goal
+        distance_to_goal = np.linalg.norm(self.objective_point - self.data.qpos[0:2])
+        self._distance_window.append(distance_to_goal)
+        if len(self._distance_window) > self._distance_window_size:
+            self._distance_window.pop(0)
+
+
+
+
         observation = self._get_obs()
         reached = self.reached
         reward, reward_info = self._calc_reward(action,old_position)
@@ -177,6 +189,10 @@ class Go1MujocoEnv(MujocoEnv):
 
         min_pitch, max_pitch = self._healthy_pitch_range
         is_healthy = is_healthy and min_pitch <= state[5] <= max_pitch
+
+        if len(self._distance_window) == self._distance_window_size:
+            progress = self._distance_window[0] - self._distance_buffer[-1]
+            is_healthy  = is_healthy and (progress >0.2)
 
         return is_healthy
 
