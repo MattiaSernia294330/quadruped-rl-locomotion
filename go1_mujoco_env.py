@@ -266,15 +266,17 @@ class Go1MujocoEnv(MujocoEnv):
     
     def state_vector(self):
         base = super().state_vector()
-        return np.concatenate([base, self.objective_point])
+        return np.concatenate([base, self.objective_point[0:2]])
 
 
     def random_point(self):
-        z=self.get_maps_z(30,0)
-        return [30,0]
+        y = np.random.uniform(-self.half_y/4, self.half_y/4)
+        x = np.random.uniform(-self.half_x/4, self.half_x/4)
+        z=self.get_maps_z(x,y)
+        return [x,y,z]
 
     def _calc_reward(self, action, old_position):
-        objective=np.array(self.objective_point)
+        objective=np.array(self.objective_point[0:2])
         old_distance= np.linalg.norm(objective - old_position)
         new_position= np.array(self.state_vector()[0:2])
         new_distance=np.linalg.norm(objective - new_position)
@@ -382,6 +384,11 @@ class Go1MujocoEnv(MujocoEnv):
         ] + self._reset_noise_scale * self.np_random.standard_normal(
             *self.data.ctrl.shape
         )
+        self.objective_point = self.random_point()  # If you want a new one each episode
+        x, y, z = self.objective_point
+        body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "goal_marker_body")
+        self.model.body_pos[body_id] = [x, y, z+3]
+       
 
         # Reset the variables and sample a new desired velocity
         self._desired_velocity = self._sample_desired_vel()
@@ -392,8 +399,6 @@ class Go1MujocoEnv(MujocoEnv):
         self._last_render_time = -1.0
 
         observation = self._get_obs()
-
-        return observation
 
     def _get_reset_info(self):
         return {
