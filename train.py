@@ -152,7 +152,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--total_timesteps",
         type=int,
-        default=5_000_000,
+        default=1_000_000,
         help="Number of timesteps to train the model for",
     )
     parser.add_argument(
