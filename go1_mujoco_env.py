@@ -7,7 +7,7 @@ import numpy as np
 from PIL import Image
 from pathlib import Path
 
-
+#nome branch reward_con_tempo
 DEFAULT_CAMERA_CONFIG = {
     "azimuth": 90.0,
     "distance": 3.0,
@@ -296,7 +296,6 @@ class Go1MujocoEnv(MujocoEnv):
         # TODO: Add debug mode with custom Tensorboard calls for individual reward
         #   functions to get a better sense of the contribution of each reward function
         # TODO: Cost for thigh or calf contact with the ground
-
         # Positive Rewards
         linear_vel_tracking_reward = (
             self.linear_velocity_tracking_reward
