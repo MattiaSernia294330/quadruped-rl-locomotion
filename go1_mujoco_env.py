@@ -191,7 +191,7 @@ class Go1MujocoEnv(MujocoEnv):
         is_healthy = is_healthy and min_pitch <= state[5] <= max_pitch
 
         if len(self._distance_window) == self._distance_window_size:
-            progress = self._distance_window[0] - self._distance_buffer[-1]
+            progress = self._distance_window[0] - self._distance_window[-1]
             is_healthy  = is_healthy and (progress >0.2)
 
         return is_healthy
