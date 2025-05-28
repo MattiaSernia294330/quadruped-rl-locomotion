@@ -266,17 +266,16 @@ class Go1MujocoEnv(MujocoEnv):
     
     def state_vector(self):
         base = super().state_vector()
-        return np.concatenate([base, self.objective_point[0:2]])
+        return np.concatenate([base, self.objective_point])
 
 
     def random_point(self):
         y = np.random.uniform(-self.half_y/4, self.half_y/4)
         x = np.random.uniform(-self.half_x/4, self.half_x/4)
-        z=self.get_maps_z(x,y)
-        return [x,y,z]
+        return [x,y]
 
     def _calc_reward(self, action, old_position):
-        objective=np.array(self.objective_point[0:2])
+        objective=np.array(self.objective_point)
         old_distance= np.linalg.norm(objective - old_position)
         new_position= np.array(self.state_vector()[0:2])
         new_distance=np.linalg.norm(objective - new_position)
@@ -385,7 +384,8 @@ class Go1MujocoEnv(MujocoEnv):
             *self.data.ctrl.shape
         )
         self.objective_point = self.random_point()  # If you want a new one each episode
-        x, y, z = self.objective_point
+        x, y = self.objective_point
+        z=self.get_maps_z(x,y)
         body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "goal_marker_body")
         self.model.body_pos[body_id] = [x, y, z+3]
        
@@ -399,6 +399,7 @@ class Go1MujocoEnv(MujocoEnv):
         self._last_render_time = -1.0
 
         observation = self._get_obs()
+        return observation
 
     def _get_reset_info(self):
         return {
