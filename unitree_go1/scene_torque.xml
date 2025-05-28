@@ -33,6 +33,7 @@
   </asset>
 
   <worldbody>
+
     <light pos="0 0 1.5" dir="0 0 -1" directional="true"/>
     <geom name="mountain_terrain"
           type="hfield"
@@ -41,5 +42,13 @@
           friction="0.6 0.1 0.05"    
           solref="0.02 1"           
           solimp="0.9 0.95 0.001"/>
+    <body name="goal_marker_body" pos="0 0 0.5">
+      <geom name="goal_marker"
+            type="cylinder"
+            size="0.2 3"
+            rgba="1 0 0 1"
+            contype="0"
+            conaffinity="0"/>
+    </body>
   </worldbody>
 </mujoco>

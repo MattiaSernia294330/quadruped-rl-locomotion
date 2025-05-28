@@ -34,9 +34,20 @@
 
   <worldbody>
     <light pos="0 0 1.5" dir="0 0 -1" directional="true"/>
+  
     <geom name="mountain_terrain"
           type="hfield"
           hfield="mountain_hf"
           condim="3"/>
+  
+    <!-- Goal mobile: può essere spostato da Python -->
+    <body name="goal_marker_body" pos="0 0 0.5">
+      <geom name="goal_marker"
+            type="cylinder"
+            size="0.2 3"
+            rgba="1 0 0 1"
+            contype="0"
+            conaffinity="0"/>
+    </body>
   </worldbody>
 </mujoco>
