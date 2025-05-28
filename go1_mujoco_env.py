@@ -4,6 +4,7 @@ from gymnasium.envs.mujoco import MujocoEnv
 import mujoco
 
 import numpy as np
+from PIL import Image
 from pathlib import Path
 
 
@@ -52,6 +53,10 @@ class Go1MujocoEnv(MujocoEnv):
         self._last_render_time = -1.0
         self._max_episode_time_sec = 15.0
         self._step = 0
+        self.half_x, self.half_y = 40.0, 40.0      
+        self.max_z = 9.999                     
+        self.img = np.array(Image.open('unitree_go1/assets/mountain_heightmap_prova2.png'))
+        self.nrow, self.ncol = self.img.shape
 
         # Weights for the reward and cost functions
         self.reward_weights = {
@@ -109,6 +114,7 @@ class Go1MujocoEnv(MujocoEnv):
             low=-np.inf, high=np.inf, shape=self._get_obs().shape, dtype=np.float64
         )
 
+
         # Feet site names to index mapping
         # https://mujoco.readthedocs.io/en/stable/XMLreference.html#body-site
         # https://mujoco.readthedocs.io/en/stable/APIreference/APItypes.html#mjtobj
@@ -127,12 +133,15 @@ class Go1MujocoEnv(MujocoEnv):
             self.model, mujoco.mjtObj.mjOBJ_BODY.value, "trunk"
         )
 
+        self.objective_point=self.random_point()
+
     def step(self, action):
+        old_position=np.array(self.state_vector()[0:3])
         self._step += 1
         self.do_simulation(action, self.frame_skip)
 
         observation = self._get_obs()
-        reward, reward_info = self._calc_reward(action)
+        reward, reward_info = self._calc_reward(action,old_position)
         # TODO: Consider terminating if knees touch the ground
         terminated = not self.is_healthy
         truncated = self._step >= (self._max_episode_time_sec / self.dt)
@@ -157,7 +166,9 @@ class Go1MujocoEnv(MujocoEnv):
     def is_healthy(self):
         state = self.state_vector()
         min_z, max_z = self._healthy_z_range
-        is_healthy = np.isfinite(state).all() and min_z <= state[2] <= max_z
+        min_z=min_z+self.get_maps_z(state[0],state[1])+0.001
+
+        is_healthy = np.isfinite(state).all() and min_z <= state[2] 
 
         min_roll, max_roll = self._healthy_roll_range
         is_healthy = is_healthy and min_roll <= state[4] <= max_roll
@@ -252,8 +263,35 @@ class Go1MujocoEnv(MujocoEnv):
 
     def action_rate_cost(self, action):
         return np.sum(np.square(self._last_action - action))
+    
+    def state_vector(self):
+        base = super().state_vector()
+        return np.concatenate([base, self.objective_point])
 
-    def _calc_reward(self, action):
+
+    def random_point(self):
+        z=self.get_maps_z(0,30)
+        return [0,30,z]
+
+    def _calc_reward(self, action, old_position):
+        objective=np.array(self.objective_point)
+        old_distance= np.linalg.norm(objective - old_position)
+        new_position= np.array(self.state_vector()[0:3])
+        new_distance=np.linalg.norm(objective - new_position)
+        reward= max(0.0,self.is_healthy*(new_distance-old_distance))
+
+        healthy_reward = self.healthy_reward * self.reward_weights["healthy"]
+        ctrl_cost = self.torque_cost * self.cost_weights["torque"]
+        linear_vel_tracking_reward = (self.linear_velocity_tracking_reward* self.reward_weights["linear_vel_tracking"])
+        reward_info = {
+            "linear_vel_tracking_reward": linear_vel_tracking_reward,
+            "reward_ctrl": -ctrl_cost,
+            "reward_survive": healthy_reward,
+        }
+        return reward, reward_info
+
+
+    def _calc_reward_old(self, action):
         # TODO: Add debug mode with custom Tensorboard calls for individual reward
         #   functions to get a better sense of the contribution of each reward function
         # TODO: Cost for thigh or calf contact with the ground
@@ -368,3 +406,17 @@ class Go1MujocoEnv(MujocoEnv):
             low=self._desired_velocity_min, high=self._desired_velocity_max
         )
         return np.array([1.0, 0, 0.0])  # TODO: Train with randomized desired_vel
+    def get_maps_z(self,X,Y):
+        u = (X + self.half_x) / (2*self.half_x)
+        v = (Y + self.half_y) / (2*self.half_y)
+        # 2) trova il pixel più vicino (round anziché floor)
+        j = int(round(u * (self.ncol - 1)))
+        i = int(round(v * (self.nrow - 1)))
+        # clamp sugli indici
+        i = max(0, min(self.nrow-1, i))
+        j = max(0, min(self.ncol-1, j))
+        # 3) leggi il valore di grigio e scala
+        p = self.img[i, j]          # 0–255
+        h_rel = p / 255.0      # 0–1
+        return h_rel * self.max_z
+
