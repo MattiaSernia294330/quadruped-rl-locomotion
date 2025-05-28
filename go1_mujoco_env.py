@@ -141,9 +141,11 @@ class Go1MujocoEnv(MujocoEnv):
         self.do_simulation(action, self.frame_skip)
 
         observation = self._get_obs()
+        reached = self.reached
         reward, reward_info = self._calc_reward(action,old_position)
+        
         # TODO: Consider terminating if knees touch the ground
-        terminated = not self.is_healthy
+        terminated = not self.is_healthy or self.reached
         truncated = self._step >= (self._max_episode_time_sec / self.dt)
         info = {
             "x_position": self.data.qpos[0],
@@ -178,6 +180,12 @@ class Go1MujocoEnv(MujocoEnv):
 
         return is_healthy
 
+
+    @property
+    def reached(self):
+        reached=np.linalg.norm(self.objective_point-self.data.qpos[0:2], ord=2)<0.5
+        return reached
+    
     @property
     def feet_contact_forces(self):
         feet_contact_forces = self.data.cfrc_ext[self._cfrc_ext_feet_indices]
@@ -279,8 +287,8 @@ class Go1MujocoEnv(MujocoEnv):
         old_distance= np.linalg.norm(objective - old_position)
         new_position= np.array(self.state_vector()[0:2])
         new_distance=np.linalg.norm(objective - new_position)
-        reward= self.is_healthy*(old_distance-new_distance)
-
+        reward = self.is_healthy*(old_distance-new_distance)
+        reward = reward + 100*self.reached
         healthy_reward = self.healthy_reward * self.reward_weights["healthy"]
         ctrl_cost = self.torque_cost * self.cost_weights["torque"]
         linear_vel_tracking_reward = (self.linear_velocity_tracking_reward* self.reward_weights["linear_vel_tracking"])
