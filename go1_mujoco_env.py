@@ -50,6 +50,8 @@ class Go1MujocoEnv(MujocoEnv):
             ],
             "render_fps": 60,
         }
+        self._distance_window = []
+        self._distance_window_size = 100
         self._last_render_time = -1.0
         self._max_episode_time_sec = 30.0
         self.start_episode=time.perf_counter()
@@ -141,14 +143,20 @@ class Go1MujocoEnv(MujocoEnv):
         old_position=np.array(self.state_vector()[0:2])
         self._step += 1
         self.do_simulation(action, self.frame_skip)
+        distance_to_goal = np.linalg.norm(self.objective_point - self.data.qpos[0:2])
+        self._distance_window.append(distance_to_goal)
+        if len(self._distance_window) > self._distance_window_size:
+            self._distance_window.pop(0)
         now=time.perf_counter()
+        reached = self.reached
         time_diff=now-self.start_episode
         observation = self._get_obs()
         reward, reward_info = self._calc_reward(action,old_position,time_diff)
         # TODO: Consider terminating if knees touch the ground
-        terminated = not self.is_healthy
-        if terminated and np.linalg.norm(self.objective_point - self.state_vector()[0:2])>1:
+        terminated = not self.is_healthy or self.reached
+        if terminated and distance_to_goal>1:
             reward=reward-100
+
         truncated = self._step >= (self._max_episode_time_sec / self.dt)
         info = {
             "x_position": self.data.qpos[0],
@@ -181,8 +189,18 @@ class Go1MujocoEnv(MujocoEnv):
         min_pitch, max_pitch = self._healthy_pitch_range
         is_healthy = is_healthy and min_pitch <= state[5] <= max_pitch
 
+        if len(self._distance_window) == self._distance_window_size:
+            progress = self._distance_window[0] - self._distance_window[-1]
+            is_healthy  = is_healthy and (progress >0.2)
+
         return is_healthy
 
+
+    @property
+    def reached(self):
+        reached=np.linalg.norm(self.objective_point-self.data.qpos[0:2], ord=2)<0.5
+        return reached
+    
     @property
     def feet_contact_forces(self):
         feet_contact_forces = self.data.cfrc_ext[self._cfrc_ext_feet_indices]
@@ -228,7 +246,7 @@ class Go1MujocoEnv(MujocoEnv):
         self._feet_air_time *= ~contact_filter
 
         return air_time_reward
-
+    
     @property
     def healthy_reward(self):
         return self.is_healthy
@@ -285,6 +303,7 @@ class Go1MujocoEnv(MujocoEnv):
         new_position= np.array(self.state_vector()[0:2])
         new_distance=np.linalg.norm(objective - new_position)
         reward= self.is_healthy*((old_distance-new_distance)+(10*(self.distance-new_distance)/time_diff))
+        reward = reward + 100*self.reached
         healthy_reward = self.healthy_reward * self.reward_weights["healthy"]
         ctrl_cost = self.torque_cost * self.cost_weights["torque"]
         linear_vel_tracking_reward = (self.linear_velocity_tracking_reward* self.reward_weights["linear_vel_tracking"])
