@@ -2,7 +2,7 @@ from gymnasium import spaces
 from gymnasium.envs.mujoco import MujocoEnv
 
 import mujoco
-
+import time
 import numpy as np
 from PIL import Image
 from pathlib import Path
@@ -51,7 +51,8 @@ class Go1MujocoEnv(MujocoEnv):
             "render_fps": 60,
         }
         self._last_render_time = -1.0
-        self._max_episode_time_sec = 15.0
+        self._max_episode_time_sec = 30.0
+        self.start_episode=time.perf_counter()
         self._step = 0
         self.half_x, self.half_y = 40.0, 40.0      
         self.max_z = 9.999                     
@@ -109,6 +110,7 @@ class Go1MujocoEnv(MujocoEnv):
         # Action: 12 torque values
         self._last_action = np.zeros(12)
         self.objective_point=self.random_point()
+        self.distance=np.linalg.norm(self.objective_point-np.array([0,0]))
         self._clip_obs_threshold = 100.0
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf, shape=(self._get_obs().shape[0],), dtype=np.float64
@@ -139,11 +141,14 @@ class Go1MujocoEnv(MujocoEnv):
         old_position=np.array(self.state_vector()[0:2])
         self._step += 1
         self.do_simulation(action, self.frame_skip)
-
+        now=time.perf_counter()
+        time_diff=now-self.start_episode
         observation = self._get_obs()
-        reward, reward_info = self._calc_reward(action,old_position)
+        reward, reward_info = self._calc_reward(action,old_position,time_diff)
         # TODO: Consider terminating if knees touch the ground
         terminated = not self.is_healthy
+        if terminated and np.linalg.norm(self.objective_point - self.state_vector()[0:2])>1:
+            reward=reward-100
         truncated = self._step >= (self._max_episode_time_sec / self.dt)
         info = {
             "x_position": self.data.qpos[0],
@@ -274,13 +279,12 @@ class Go1MujocoEnv(MujocoEnv):
         x = np.random.uniform(-self.half_x/4, self.half_x/4)
         return [x,y]
 
-    def _calc_reward(self, action, old_position):
+    def _calc_reward(self, action, old_position,time_diff):
         objective=np.array(self.objective_point)
         old_distance= np.linalg.norm(objective - old_position)
         new_position= np.array(self.state_vector()[0:2])
         new_distance=np.linalg.norm(objective - new_position)
-        reward= self.is_healthy*(old_distance-new_distance)
-
+        reward= self.is_healthy*((old_distance-new_distance)+(10*(self.distance-new_distance)/time_diff))
         healthy_reward = self.healthy_reward * self.reward_weights["healthy"]
         ctrl_cost = self.torque_cost * self.cost_weights["torque"]
         linear_vel_tracking_reward = (self.linear_velocity_tracking_reward* self.reward_weights["linear_vel_tracking"])
@@ -383,6 +387,7 @@ class Go1MujocoEnv(MujocoEnv):
             *self.data.ctrl.shape
         )
         self.objective_point = self.random_point()  # If you want a new one each episode
+        self.distance=np.linalg.norm(self.objective_point-np.array([0,0]))
         x, y = self.objective_point
         z=self.get_maps_z(x,y)
         body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "goal_marker_body")
@@ -398,6 +403,7 @@ class Go1MujocoEnv(MujocoEnv):
         self._last_render_time = -1.0
 
         observation = self._get_obs()
+        self.start_episode=time.perf_counter()
         return observation
 
     def _get_reset_info(self):
