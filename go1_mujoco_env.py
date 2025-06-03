@@ -53,7 +53,7 @@ class Go1MujocoEnv(MujocoEnv):
         self._distance_window = []
         self._distance_window_size = 100
         self._last_render_time = -1.0
-        self._max_episode_time_sec = 30.0
+        self._max_episode_time_sec = 100000
         self.start_episode=time.perf_counter()
         self._step = 0
         self.half_x, self.half_y = 40.0, 40.0      
@@ -154,8 +154,8 @@ class Go1MujocoEnv(MujocoEnv):
         reward, reward_info = self._calc_reward(action,old_position,time_diff)
         # TODO: Consider terminating if knees touch the ground
         terminated = not self.is_healthy or self.reached
-        if terminated and distance_to_goal>1:
-            reward=reward-100
+        #if terminated and distance_to_goal>1:
+            #reward=reward-100
 
         truncated = self._step >= (self._max_episode_time_sec / self.dt)
         info = {
@@ -191,7 +191,7 @@ class Go1MujocoEnv(MujocoEnv):
 
         if len(self._distance_window) == self._distance_window_size:
             progress = self._distance_window[0] - self._distance_window[-1]
-            is_healthy  = is_healthy and (progress >0.2)
+            is_healthy  = is_healthy and (progress >0.02)
 
         return is_healthy
 
@@ -295,14 +295,15 @@ class Go1MujocoEnv(MujocoEnv):
     def random_point(self):
         y = np.random.uniform(-self.half_y/4, self.half_y/4)
         x = np.random.uniform(-self.half_x/4, self.half_x/4)
-        return [x,y]
+        return [10,0]
 
     def _calc_reward(self, action, old_position,time_diff):
         objective=np.array(self.objective_point)
         old_distance= np.linalg.norm(objective - old_position)
         new_position= np.array(self.state_vector()[0:2])
         new_distance=np.linalg.norm(objective - new_position)
-        reward= self.is_healthy*((old_distance-new_distance)+(10*(self.distance-new_distance)/time_diff))
+        joint_limit_cost = self.joint_limit_cost * self.cost_weights["joint_limit"]
+        reward= self.is_healthy*((old_distance-new_distance)+self.is_healthy*0.6+joint_limit_cost)#((10*(self.distance-new_distance)/time_diff))
         reward = reward + 100*self.reached
         healthy_reward = self.healthy_reward * self.reward_weights["healthy"]
         ctrl_cost = self.torque_cost * self.cost_weights["torque"]
