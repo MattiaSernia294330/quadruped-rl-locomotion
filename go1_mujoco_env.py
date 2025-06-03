@@ -60,6 +60,9 @@ class Go1MujocoEnv(MujocoEnv):
         self.max_z = 9.999                     
         self.img = np.array(Image.open('unitree_go1/assets/mountain_heightmap_prova2.png'))
         self.nrow, self.ncol = self.img.shape
+        self.direction= self.calc_direction()
+        
+
 
         # Weights for the reward and cost functions
         self.reward_weights = {
@@ -112,7 +115,9 @@ class Go1MujocoEnv(MujocoEnv):
         # Action: 12 torque values
         self._last_action = np.zeros(12)
         self.objective_point=self.random_point()
+        self.relative_direction=self.calc_relative_direction(self.direction)
         self.distance=np.linalg.norm(self.objective_point-np.array([0,0]))
+        self.distance_to_goal=np.linalg.norm(self.objective_point-np.array([0,0]))
         self._clip_obs_threshold = 100.0
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf, shape=(self._get_obs().shape[0],), dtype=np.float64
@@ -140,18 +145,22 @@ class Go1MujocoEnv(MujocoEnv):
         
 
     def step(self, action):
+        old_rel_direction=self.relative_direction
         old_position=np.array(self.state_vector()[0:2])
         self._step += 1
         self.do_simulation(action, self.frame_skip)
-        distance_to_goal = np.linalg.norm(self.objective_point - self.data.qpos[0:2])
-        self._distance_window.append(distance_to_goal)
+        self.distance_to_goal = np.linalg.norm(self.objective_point - self.data.qpos[0:2])
+
+        self._distance_window.append(self.distance_to_goal)
         if len(self._distance_window) > self._distance_window_size:
             self._distance_window.pop(0)
         now=time.perf_counter()
+        self.direction=self.calc_direction()
+        self.relative_direction=self.calc_relative_direction(self.direction)
         reached = self.reached
         time_diff=now-self.start_episode
         observation = self._get_obs()
-        reward, reward_info = self._calc_reward(action,old_position,time_diff)
+        reward, reward_info = self._calc_reward(action,old_position,time_diff,old_rel_direction)
         # TODO: Consider terminating if knees touch the ground
         terminated = not self.is_healthy or self.reached
         #if terminated and distance_to_goal>1:
@@ -289,21 +298,21 @@ class Go1MujocoEnv(MujocoEnv):
     
     def state_vector(self):
         base = super().state_vector()
-        return np.concatenate([base, self.objective_point])
+        return np.concatenate([base, np.array([self.relative_direction]), np.array([self.distance_to_goal])])
 
 
     def random_point(self):
         y = np.random.uniform(-self.half_y/4, self.half_y/4)
         x = np.random.uniform(-self.half_x/4, self.half_x/4)
-        return [10,0]
+        return [10,10]
 
-    def _calc_reward(self, action, old_position,time_diff):
+    def _calc_reward(self, action, old_position,time_diff,old_rel_direction):
         objective=np.array(self.objective_point)
         old_distance= np.linalg.norm(objective - old_position)
         new_position= np.array(self.state_vector()[0:2])
-        new_distance=np.linalg.norm(objective - new_position)
+        new_distance=self.distance_to_goal
         joint_limit_cost = self.joint_limit_cost * self.cost_weights["joint_limit"]
-        reward= self.is_healthy*((old_distance-new_distance)+self.is_healthy*0.6+joint_limit_cost)#((10*(self.distance-new_distance)/time_diff))
+        reward= self.is_healthy*((old_distance-new_distance)+self.is_healthy*0.6+((self.distance-new_distance)/time_diff)+(self.relative_direction-old_rel_direction))
         reward = reward + 100*self.reached
         healthy_reward = self.healthy_reward * self.reward_weights["healthy"]
         ctrl_cost = self.torque_cost * self.cost_weights["torque"]
@@ -390,8 +399,7 @@ class Go1MujocoEnv(MujocoEnv):
         curr_obs = np.concatenate((position, velocity, desired_vel, last_action)).clip(
             -self._clip_obs_threshold, self._clip_obs_threshold
         )
-        curr_obs= np.concatenate([curr_obs, self.objective_point])
-
+        curr_obs= np.concatenate([curr_obs, np.array([self.relative_direction]), np.array([self.distance_to_goal])])
         return curr_obs
 
     def reset_model(self):
@@ -408,6 +416,9 @@ class Go1MujocoEnv(MujocoEnv):
         )
         self.objective_point = self.random_point()  # If you want a new one each episode
         self.distance=np.linalg.norm(self.objective_point-np.array([0,0]))
+        self.distance_to_goal=np.linalg.norm(self.objective_point-np.array([0,0]))
+        self.direction= self.calc_direction()
+        self.relative_direction=self.calc_relative_direction(self.direction)
         x, y = self.objective_point
         z=self.get_maps_z(x,y)
         body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "goal_marker_body")
@@ -451,4 +462,16 @@ class Go1MujocoEnv(MujocoEnv):
         p = self.img[i, j]          # 0–255
         h_rel = p / 255.0      # 0–1
         return h_rel * self.max_z
-
+    def calc_direction(self): 
+        mat = np.zeros(9, dtype=np.float64)  # vettore piatto
+        quat = self.data.qpos[3:7].astype(np.float64)
+        mujoco.mju_quat2Mat(mat, quat)
+        x_axis_world = np.array([mat[0], mat[1], mat[2]])   
+        direction_xy = x_axis_world[:2]
+        direction_xy /= np.linalg.norm(direction_xy)
+        return direction_xy
+    def calc_relative_direction(self,direction):
+        rel_direction=self.objective_point-self.data.qpos[0:2]
+        rel_direction/=np.linalg.norm(rel_direction)
+        rel_direction=np.dot(direction, rel_direction)
+        return rel_direction
