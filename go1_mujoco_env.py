@@ -311,8 +311,12 @@ class Go1MujocoEnv(MujocoEnv):
         old_distance= np.linalg.norm(objective - old_position)
         new_position= np.array(self.state_vector()[0:2])
         new_distance=self.distance_to_goal
-        joint_limit_cost = self.joint_limit_cost * self.cost_weights["joint_limit"]
-        reward= self.is_healthy*((old_distance-new_distance)+self.is_healthy*0.6+((self.distance-new_distance)/time_diff)+(self.relative_direction-old_rel_direction))
+        progress=old_distance-new_distance
+        orientation_reward=2*self.relative_direction-old_rel_direction
+        time_eff=(self.distance-new_distance)/max(time_diff,1e-6)
+        survival = 0.6 if self.is_healthy else 0.0
+        death_penalty = -5.0 if not self.is_healthy else 0.0
+        reward= progress+orientation_reward+time_eff+survival+death_penalty
         reward = reward + 100*self.reached
         healthy_reward = self.healthy_reward * self.reward_weights["healthy"]
         ctrl_cost = self.torque_cost * self.cost_weights["torque"]
@@ -324,60 +328,6 @@ class Go1MujocoEnv(MujocoEnv):
         }
         return reward, reward_info
 
-
-    def _calc_reward_old(self, action):
-        # TODO: Add debug mode with custom Tensorboard calls for individual reward
-        #   functions to get a better sense of the contribution of each reward function
-        # TODO: Cost for thigh or calf contact with the ground
-        # Positive Rewards
-        linear_vel_tracking_reward = (
-            self.linear_velocity_tracking_reward
-            * self.reward_weights["linear_vel_tracking"]
-        )
-        angular_vel_tracking_reward = (
-            self.angular_velocity_tracking_reward
-            * self.reward_weights["angular_vel_tracking"]
-        )
-        healthy_reward = self.healthy_reward * self.reward_weights["healthy"]
-        feet_air_time_reward = (
-            self.feet_air_time_reward * self.reward_weights["feet_airtime"]
-        )
-        rewards = (
-            linear_vel_tracking_reward
-            + angular_vel_tracking_reward
-            + healthy_reward
-            + feet_air_time_reward
-        )
-
-        # Negative Costs
-        ctrl_cost = self.torque_cost * self.cost_weights["torque"]
-        action_rate_cost = (
-            self.action_rate_cost(action) * self.cost_weights["action_rate"]
-        )
-        vertical_vel_cost = (
-            self.vertical_velocity_cost * self.cost_weights["vertical_vel"]
-        )
-        xy_angular_vel_cost = (
-            self.xy_angular_velocity_cost * self.cost_weights["xy_angular_vel"]
-        )
-        joint_limit_cost = self.joint_limit_cost * self.cost_weights["joint_limit"]
-        costs = (
-            ctrl_cost
-            + action_rate_cost
-            + vertical_vel_cost
-            + xy_angular_vel_cost
-            + joint_limit_cost
-        )
-        
-        reward = max(0.0, rewards - costs)
-
-        reward_info = {
-            "linear_vel_tracking_reward": linear_vel_tracking_reward,
-            "reward_ctrl": -ctrl_cost,
-            "reward_survive": healthy_reward,
-        }
-
-        return reward, reward_info
 
     def _get_obs(self):
         # The first three indices are the global x,y,z position of the trunk of the robot
@@ -468,7 +418,11 @@ class Go1MujocoEnv(MujocoEnv):
         mujoco.mju_quat2Mat(mat, quat)
         x_axis_world = np.array([mat[0], mat[1], mat[2]])   
         direction_xy = x_axis_world[:2]
-        direction_xy /= np.linalg.norm(direction_xy)
+        direction_xy=np.array([-direction_xy[1], direction_xy[0]])
+        norm=np.linalg.norm(direction_xy)
+        if norm<1e-8:
+            return np.array([1.0, 0.0])
+        direction_xy /= norm
         return direction_xy
     def calc_relative_direction(self,direction):
         rel_direction=self.objective_point-self.data.qpos[0:2]
