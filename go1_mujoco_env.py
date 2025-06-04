@@ -110,7 +110,7 @@ class Go1MujocoEnv(MujocoEnv):
         self._soft_joint_range[:, 0] += ctrl_range_offset
         self._soft_joint_range[:, 1] -= ctrl_range_offset
 
-        self._reset_noise_scale = 0.1
+        self._reset_noise_scale = 0
 
         # Action: 12 torque values
         self._last_action = np.zeros(12)
@@ -181,6 +181,7 @@ class Go1MujocoEnv(MujocoEnv):
             self._last_render_time = self.data.time
 
         self._last_action = action
+        #print(">>> Dopo un passo:", " pos (x,y):", self.data.qpos[0:2], " z:", self.data.qpos[2], " is_healthy:", self.is_healthy, " reached:", self.reached, " terminated:", terminated)
 
         return observation, reward, terminated, truncated, info
 
@@ -201,7 +202,6 @@ class Go1MujocoEnv(MujocoEnv):
         if len(self._distance_window) == self._distance_window_size:
             progress = self._distance_window[0] - self._distance_window[-1]
             is_healthy  = is_healthy and (progress >0.02)
-
         return is_healthy
 
 
@@ -317,7 +317,7 @@ class Go1MujocoEnv(MujocoEnv):
         survival = 0.6 if self.is_healthy else 0.0
         death_penalty = -5.0 if not self.is_healthy else 0.0
         reward= progress+orientation_reward+time_eff+survival+death_penalty
-        reward = reward + 100*self.reached
+        reward = reward + 5*self.reached
         healthy_reward = self.healthy_reward * self.reward_weights["healthy"]
         ctrl_cost = self.torque_cost * self.cost_weights["torque"]
         linear_vel_tracking_reward = (self.linear_velocity_tracking_reward* self.reward_weights["linear_vel_tracking"])
@@ -384,7 +384,9 @@ class Go1MujocoEnv(MujocoEnv):
         self._last_render_time = -1.0
 
         observation = self._get_obs()
+        #print(">>> Dopo reset:", " pos (x,y):", self.data.qpos[0:2], " z:", self.data.qpos[2], " is_healthy:", self.is_healthy, " reached:", self.reached, " objective_point:", self.objective_point)
         self.start_episode=time.perf_counter()
+        self._distance_window=[]
         return observation
 
     def _get_reset_info(self):
