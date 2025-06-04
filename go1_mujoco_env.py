@@ -313,7 +313,8 @@ class Go1MujocoEnv(MujocoEnv):
         new_distance=self.distance_to_goal
         progress=old_distance-new_distance
         orientation_reward=2*self.relative_direction-old_rel_direction
-        time_eff=(self.distance-new_distance)/max(time_diff,1e-6)
+        #time_eff=(self.distance-new_distance)/max(time_diff,1e-6)
+        time_eff=self.calc_vel_objective()
         survival = 0.6 if self.is_healthy else 0.0
         death_penalty = -5.0 if not self.is_healthy else 0.0
         reward= progress+orientation_reward+time_eff+survival+death_penalty
@@ -431,3 +432,9 @@ class Go1MujocoEnv(MujocoEnv):
         rel_direction/=np.linalg.norm(rel_direction)
         rel_direction=np.dot(direction, rel_direction)
         return rel_direction
+    def calc_vel_objective(self):
+        goal_vec = self.objective_point - self.data.qpos[:2]        
+        goal_dir = goal_vec / (np.linalg.norm(goal_vec) + 1e-8)
+        vel_xy = self.data.qvel[:2]
+        v_toward_goal = np.dot(vel_xy, goal_dir)
+        return v_toward_goal
