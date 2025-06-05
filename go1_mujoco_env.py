@@ -304,7 +304,7 @@ class Go1MujocoEnv(MujocoEnv):
     def random_point(self):
         y = np.random.uniform(-self.half_y/4, self.half_y/4)
         x = np.random.uniform(-self.half_x/4, self.half_x/4)
-        return [10,10]
+        return [x,y]
 
     def _calc_reward(self, action, old_position,time_diff,old_rel_direction):
         objective=np.array(self.objective_point)
@@ -419,9 +419,8 @@ class Go1MujocoEnv(MujocoEnv):
         mat = np.zeros(9, dtype=np.float64)  # vettore piatto
         quat = self.data.qpos[3:7].astype(np.float64)
         mujoco.mju_quat2Mat(mat, quat)
-        x_axis_world = np.array([mat[0], mat[1], mat[2]])   
+        x_axis_world = np.array([mat[3], mat[4], mat[5]])   
         direction_xy = x_axis_world[:2]
-        direction_xy = np.array([-direction_xy[1], direction_xy[0]])
         norm=np.linalg.norm(direction_xy)
         if norm<1e-8:
             return np.array([1.0, 0.0])
