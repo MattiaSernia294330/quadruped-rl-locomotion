@@ -304,7 +304,7 @@ class Go1MujocoEnv(MujocoEnv):
     def random_point(self):
         y = np.random.uniform(-self.half_y/4, self.half_y/4)
         x = np.random.uniform(-self.half_x/4, self.half_x/4)
-        return [10,10]
+        return [x,y]
 
     def _calc_reward(self, action, old_position,time_diff,old_rel_direction):
         objective=np.array(self.objective_point)
@@ -350,7 +350,7 @@ class Go1MujocoEnv(MujocoEnv):
         curr_obs = np.concatenate((position, velocity, desired_vel, last_action)).clip(
             -self._clip_obs_threshold, self._clip_obs_threshold
         )
-        curr_obs= np.concatenate([curr_obs, np.array([self.relative_direction]), np.array([self.distance_to_goal])])
+        curr_obs= np.concatenate([curr_obs, np.array([self.relative_direction])])#, np.array([self.distance_to_goal])])
         return curr_obs
 
     def reset_model(self):
