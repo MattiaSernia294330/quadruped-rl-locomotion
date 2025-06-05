@@ -1,6 +1,6 @@
 from gymnasium import spaces
 from gymnasium.envs.mujoco import MujocoEnv
-
+import math
 import mujoco
 import time
 import numpy as np
@@ -304,7 +304,7 @@ class Go1MujocoEnv(MujocoEnv):
     def random_point(self):
         y = np.random.uniform(-self.half_y/4, self.half_y/4)
         x = np.random.uniform(-self.half_x/4, self.half_x/4)
-        return [x,y]
+        return [10,10]
 
     def _calc_reward(self, action, old_position,time_diff,old_rel_direction):
         objective=np.array(self.objective_point)
@@ -312,20 +312,20 @@ class Go1MujocoEnv(MujocoEnv):
         new_position= np.array(self.state_vector()[0:2])
         new_distance=self.distance_to_goal
         progress=old_distance-new_distance
-        orientation_reward=2*self.relative_direction-old_rel_direction
+        orientation_reward=-abs(self.relative_direction)-(abs(self.relative_direction)-abs(old_rel_direction))
+        #orientation_reward = 2 * -abs(self.relative_direction)
+        #yaw_rate_penalty = -0.05 * abs(self.data.qvel[5])
         #time_eff=(self.distance-new_distance)/max(time_diff,1e-6)
         time_eff=self.calc_vel_objective()
         survival = 0.6 if self.is_healthy else 0.0
         death_penalty = -5.0 if not self.is_healthy else 0.0
         reward= progress+orientation_reward+time_eff+survival+death_penalty
         reward = reward + 5*self.reached
-        healthy_reward = self.healthy_reward * self.reward_weights["healthy"]
-        ctrl_cost = self.torque_cost * self.cost_weights["torque"]
-        linear_vel_tracking_reward = (self.linear_velocity_tracking_reward* self.reward_weights["linear_vel_tracking"])
         reward_info = {
-            "linear_vel_tracking_reward": linear_vel_tracking_reward,
-            "reward_ctrl": -ctrl_cost,
-            "reward_survive": healthy_reward,
+                    "progress": progress,
+                    "orientation_reward": orientation_reward,
+                    "reward_survive": survival,
+                    "time_eff": time_eff
         }
         return reward, reward_info
 
@@ -421,17 +421,36 @@ class Go1MujocoEnv(MujocoEnv):
         mujoco.mju_quat2Mat(mat, quat)
         x_axis_world = np.array([mat[0], mat[1], mat[2]])   
         direction_xy = x_axis_world[:2]
-        direction_xy=np.array([-direction_xy[1], direction_xy[0]])
+        direction_xy = np.array([-direction_xy[1], direction_xy[0]])
         norm=np.linalg.norm(direction_xy)
         if norm<1e-8:
             return np.array([1.0, 0.0])
         direction_xy /= norm
+
         return direction_xy
+    #def calc_relative_direction(self,direction):
+    #    rel_direction=self.objective_point-self.data.qpos[0:2]
+    #    rel_direction/=np.linalg.norm(rel_direction)
+    #    rel_direction=np.dot(direction, rel_direction)
+    #    return rel_direction
     def calc_relative_direction(self,direction):
-        rel_direction=self.objective_point-self.data.qpos[0:2]
-        rel_direction/=np.linalg.norm(rel_direction)
-        rel_direction=np.dot(direction, rel_direction)
-        return rel_direction
+        vec_to_target = self.objective_point - self.data.qpos[0:2]
+        norm = np.linalg.norm(vec_to_target)
+        if norm < 1e-8:
+            return 0.0  # target sovrapposto alla posizione del robot: angolo=0
+
+        # 2. Lo normalizziamo
+        vec_to_target /= norm
+
+        # 3. Calcoliamo dot e cross (in 2D) tra forward_dir e vec_to_target
+        #    - dot = |a||b| cosθ  (ma qui |a|=|b|=1)
+        #    - cross_z = a_x * b_y - a_y * b_x
+        dot_val = float(np.dot(direction, vec_to_target))
+        cross_z = direction[0] * vec_to_target[1] - direction[1] * vec_to_target[0]
+
+        # 4. Angolo signed = atan2(cross, dot) ∈ (−π, +π]
+        theta = math.atan2(cross_z, dot_val)
+        return theta
     def calc_vel_objective(self):
         goal_vec = self.objective_point - self.data.qpos[:2]        
         goal_dir = goal_vec / (np.linalg.norm(goal_vec) + 1e-8)
