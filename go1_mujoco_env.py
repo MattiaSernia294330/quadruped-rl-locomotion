@@ -344,7 +344,7 @@ class Go1MujocoEnv(MujocoEnv):
                     "reward_survive": survival,
                     "time_eff": time_eff
         }
-        reward += self.calc_leg_spread_penalty()
+        #reward += self.calc_leg_spread_penalty()
        
         return reward, reward_info
 
