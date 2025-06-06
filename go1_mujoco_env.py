@@ -186,6 +186,22 @@ class Go1MujocoEnv(MujocoEnv):
 
         return observation, reward, terminated, truncated, info
 
+    
+    def calc_leg_spread_penalty(self):
+        qpos_joints = self.data.qpos[7:]
+        penalty = 0.0
+    
+        # Assume 12 joints: 3 per leg (hip_abduction, hip_rotation, knee)
+        # Hip abduction joints are at indices: 0, 3, 6, 9 (one per leg)
+        abduction_indices = [0, 3, 6, 9]
+    
+        for i in abduction_indices:
+            q = qpos_joints[i]
+            # Penalize if too far from 0 (neutral straight position)
+            penalty += q ** 2  # squared to penalize larger deviations more
+    
+        return -0.1 * penalty  # negative to penalize in reward
+
     @property
     def is_healthy(self):
         state = self.state_vector()
@@ -328,6 +344,8 @@ class Go1MujocoEnv(MujocoEnv):
                     "reward_survive": survival,
                     "time_eff": time_eff
         }
+        reward += self.calc_leg_spread_penalty()
+       
         return reward, reward_info
 
 
