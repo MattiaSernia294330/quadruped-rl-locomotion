@@ -28,7 +28,7 @@
 
     <!-- ——— Asset per terreno montano ——— -->
     <hfield name="mountain_hf"
-          file="bardonecchia.png"
+          file="bhutanlake.png"
           size="40 40 7 0.5"/>
   </asset>
 
