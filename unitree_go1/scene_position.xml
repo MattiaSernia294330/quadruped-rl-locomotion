@@ -28,8 +28,8 @@
 
     <!-- ——— Asset per terreno montano ——— -->
     <hfield name="mountain_hf"
-          file="mountain_heightmap_prova2.png"
-          size="40 40 10 0.1"/>
+          file="bardonecchia.png"
+          size="40 40 7 0.1"/>
   </asset>
 
   <worldbody>
