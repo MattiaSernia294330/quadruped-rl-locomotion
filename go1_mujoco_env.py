@@ -58,8 +58,8 @@ class Go1MujocoEnv(MujocoEnv):
         self.start_episode=time.perf_counter()
         self._step = 0
         self.half_x, self.half_y = 40.0, 40.0      
-        self.max_z = 9.999                     
-        self.img = np.array(Image.open('unitree_go1/assets/mountain_heightmap_prova2.png'))
+        self.max_z = 7                     
+        self.img = np.array(Image.open('unitree_go1/assets/bhutanlake.png'))
         self.nrow, self.ncol = self.img.shape
         self.direction= self.calc_direction()
         
@@ -431,7 +431,7 @@ class Go1MujocoEnv(MujocoEnv):
         j = max(0, min(self.ncol-1, j))
         # 3) leggi il valore di grigio e scala
         p = self.img[i, j]          # 0–255
-        h_rel = p / 255.0      # 0–1
+        h_rel = p / 65535.0      # 0–1
         return h_rel * self.max_z
     def calc_direction(self): 
         mat = np.zeros(9, dtype=np.float64)  # vettore piatto
