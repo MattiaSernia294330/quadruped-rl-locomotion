@@ -52,6 +52,7 @@ class Go1MujocoEnv(MujocoEnv):
         }
         self._distance_window = []
         self._distance_window_size = 100
+        self.max_distance=math.sqrt(2)*10
         self._last_render_time = -1.0
         self._max_episode_time_sec = 100000
         self.start_episode=time.perf_counter()
@@ -312,14 +313,14 @@ class Go1MujocoEnv(MujocoEnv):
         new_position= np.array(self.state_vector()[0:2])
         new_distance=self.distance_to_goal
         progress=old_distance-new_distance
-        orientation_reward=-abs(self.relative_direction)-(abs(self.relative_direction)-abs(old_rel_direction))
+        orientation_reward=np.cos(self.relative_direction)+(np.cos(self.relative_direction)-np.cos(old_rel_direction))
         #orientation_reward = 2 * -abs(self.relative_direction)
         #yaw_rate_penalty = -0.05 * abs(self.data.qvel[5])
         #time_eff=(self.distance-new_distance)/max(time_diff,1e-6)
         time_eff=self.calc_vel_objective()
         survival = 0.6 if self.is_healthy else 0.0
         death_penalty = -5.0 if not self.is_healthy else 0.0
-        reward= progress+orientation_reward+time_eff+survival+death_penalty
+        reward= progress+2*orientation_reward+time_eff+survival+death_penalty
         reward = reward + 5*self.reached
         reward_info = {
                     "progress": progress,
@@ -344,13 +345,12 @@ class Go1MujocoEnv(MujocoEnv):
         velocity = self.data.qvel.flatten()
         velocity[:3] *= self._velocity_scale
 
-        desired_vel = self._desired_velocity * self._velocity_scale
         last_action = self._last_action
 
-        curr_obs = np.concatenate((position, velocity, desired_vel, last_action)).clip(
+        curr_obs = np.concatenate((position, velocity, last_action)).clip(
             -self._clip_obs_threshold, self._clip_obs_threshold
         )
-        curr_obs= np.concatenate([curr_obs, np.array([self.relative_direction])])#, np.array([self.distance_to_goal])])
+        curr_obs= np.concatenate([curr_obs, np.array([self.relative_direction]), np.array([self.distance_to_goal/self.max_distance])])
         return curr_obs
 
     def reset_model(self):
@@ -419,7 +419,7 @@ class Go1MujocoEnv(MujocoEnv):
         mat = np.zeros(9, dtype=np.float64)  # vettore piatto
         quat = self.data.qpos[3:7].astype(np.float64)
         mujoco.mju_quat2Mat(mat, quat)
-        x_axis_world = np.array([mat[3], mat[4], mat[5]])   
+        x_axis_world = np.array([mat[0], mat[3], mat[6]])   
         direction_xy = x_axis_world[:2]
         norm=np.linalg.norm(direction_xy)
         if norm<1e-8:
