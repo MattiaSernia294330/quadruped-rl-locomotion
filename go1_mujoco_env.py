@@ -329,6 +329,7 @@ class Go1MujocoEnv(MujocoEnv):
         new_position= np.array(self.state_vector()[0:2])
         new_distance=self.distance_to_goal
         progress=old_distance-new_distance
+        print(self.relative_direction)
         orientation_reward=np.cos(self.relative_direction)+(np.cos(self.relative_direction)-np.cos(old_rel_direction))
         #orientation_reward = 2 * -abs(self.relative_direction)
         #yaw_rate_penalty = -0.05 * abs(self.data.qvel[5])
