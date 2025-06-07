@@ -336,7 +336,7 @@ class Go1MujocoEnv(MujocoEnv):
         time_eff=self.calc_vel_objective()
         survival = 0.5 if self.is_healthy else 0.0
         death_penalty = -5.0 if not self.is_healthy else 0.0
-        if abs(self.relative_directions)>0.2:
+        if abs(self.relative_direction)>0.2:
             reward= progress+2*orientation_reward+time_eff+survival+death_penalty #was 1*progress and tuime eff
         else: 
             reward= 2*progress+orientation_reward+1.5*time_eff+survival+death_penalty #was 1*progress and tuime eff
