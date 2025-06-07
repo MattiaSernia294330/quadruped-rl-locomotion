@@ -29,7 +29,7 @@
     <!-- ——— Asset per terreno montano ——— -->
     <hfield name="mountain_hf"
           file="bhutanlake.png"
-          size="40 40 7 0.1"/>
+          size="40 40 6.3 0.1"/> <!--was 7-->
   </asset>
 
   <worldbody>
