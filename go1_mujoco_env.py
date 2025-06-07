@@ -338,7 +338,8 @@ class Go1MujocoEnv(MujocoEnv):
         death_penalty = -5.0 if not self.is_healthy else 0.0
         reward= 3*progress+2*orientation_reward+2*time_eff+survival+death_penalty #was 1*progress and tuime eff
         reward = reward + 100*self.reached
-        print("yep he did it") if self.reached
+        if self.reached:
+            print("yep he did it") 
         reward_info = {
                     "progress": progress,
                     "orientation_reward": orientation_reward,
