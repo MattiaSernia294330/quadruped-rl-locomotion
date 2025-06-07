@@ -334,17 +334,18 @@ class Go1MujocoEnv(MujocoEnv):
         #yaw_rate_penalty = -0.05 * abs(self.data.qvel[5])
         #time_eff=(self.distance-new_distance)/max(time_diff,1e-6)
         time_eff=self.calc_vel_objective()
-        survival = 0.6 if self.is_healthy else 0.0
+        survival = 0.2 if self.is_healthy else 0.0
         death_penalty = -5.0 if not self.is_healthy else 0.0
-        reward= progress+2*orientation_reward+time_eff+survival+death_penalty
-        reward = reward + 5*self.reached
+        reward= 3*progress+2*orientation_reward+2*time_eff+survival+death_penalty #was 1*progress and tuime eff
+        reward = reward + 100*self.reached
+        print("yep he did it") if self.reached
         reward_info = {
                     "progress": progress,
                     "orientation_reward": orientation_reward,
                     "reward_survive": survival,
                     "time_eff": time_eff
         }
-        #reward += self.calc_leg_spread_penalty()
+        reward += 0.05*self.calc_leg_spread_penalty() #was*1
        
         return reward, reward_info
 
