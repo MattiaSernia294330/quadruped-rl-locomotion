@@ -329,7 +329,6 @@ class Go1MujocoEnv(MujocoEnv):
         new_position= np.array(self.state_vector()[0:2])
         new_distance=self.distance_to_goal
         progress=old_distance-new_distance
-        print(self.relative_direction)
         orientation_reward=np.cos(self.relative_direction)+(np.cos(self.relative_direction)-np.cos(old_rel_direction))
         #orientation_reward = 2 * -abs(self.relative_direction)
         #yaw_rate_penalty = -0.05 * abs(self.data.qvel[5])
@@ -337,7 +336,11 @@ class Go1MujocoEnv(MujocoEnv):
         time_eff=self.calc_vel_objective()
         survival = 0.2 if self.is_healthy else 0.0
         death_penalty = -5.0 if not self.is_healthy else 0.0
-        reward= 2.5*progress+2*orientation_reward+2*time_eff+survival+death_penalty #was 1*progress and tuime eff
+        if abs(self.relative_directions)>0.2:
+            reward= progress+2*orientation_reward+time_eff+survival+death_penalty #was 1*progress and tuime eff
+        else: 
+            reward= 3*progress+orientation_reward+2time_eff+survival+death_penalty #was 1*progress and tuime eff
+ 
         reward = reward + 100*self.reached
          
         reward_info = {
