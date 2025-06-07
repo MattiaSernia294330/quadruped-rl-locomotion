@@ -13,8 +13,8 @@
         <position ctrlrange="-0.863 0.863"/>
       </default>
       <default class="hip">
-        <joint range="-0.686 3.701"/> <!-- was 4.501 here and down-->
-        <position ctrlrange="-0.686 3.701"/> 
+        <joint range="-0.686 4.201"/> <!-- was 4.501 here and down-->
+        <position ctrlrange="-0.686 4.201"/> 
       </default>
       <default class="knee">
         <joint range="-2.818 -0.888"/>
