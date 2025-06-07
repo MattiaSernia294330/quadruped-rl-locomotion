@@ -391,7 +391,7 @@ class Go1MujocoEnv(MujocoEnv):
                 offset = dx * heading + dy * side
                 sample_x = robot_pos[0] + offset[0]
                 sample_y = robot_pos[1] + offset[1]
-                height = self.terrain.get_maps_z(sample_x, sample_y)
+                height = self.get_maps_z(sample_x, sample_y)
                 rel_height = height - robot_pos[2]
                 points.append(rel_height)
     
