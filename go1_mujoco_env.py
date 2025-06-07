@@ -373,9 +373,29 @@ class Go1MujocoEnv(MujocoEnv):
         curr_obs = np.concatenate((position, velocity, last_action)).clip(
             -self._clip_obs_threshold, self._clip_obs_threshold
         )
-        curr_obs= np.concatenate([curr_obs, np.array([self.relative_direction]), np.array([self.distance_to_goal/self.max_distance])])
-        return curr_obs
 
+        terrain_window = self.sample_terrain_ahead(window_size=(9,9)).flatten()  # 5x5 grid
+
+        curr_obs= np.concatenate([curr_obs, np.array([self.relative_direction]), np.array([self.distance_to_goal/self.max_distance]), terrain_window])
+        return curr_obs
+    def sample_terrain_ahead(self, window_size):
+        robot_pos = self.data.qpos[:3]           # [x, y, z]
+        heading = self.calc_direction()          # 2D unit vector [x, y]
+        side = np.array([-heading[1], heading[0]])  # perpendicular vector
+    
+        points = []
+        for dx in np.linspace(0.1, 1.0, window_size[0]):
+            for dy in np.linspace(-0.3, 0.3, window_size[1]):
+                offset = dx * heading + dy * side
+                sample_x = robot_pos[0] + offset[0]
+                sample_y = robot_pos[1] + offset[1]
+                height = self.terrain.get_maps_z(sample_x, sample_y)
+                rel_height = height - robot_pos[2]
+                points.append(rel_height)
+    
+        return np.array(points).reshape(window_size)
+
+    
     def reset_model(self):
         # Reset the position and control values with noise
         self.data.qpos[:] = self.model.key_qpos[0] + self.np_random.uniform(
