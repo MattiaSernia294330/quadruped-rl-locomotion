@@ -59,7 +59,7 @@ class Go1MujocoEnv(MujocoEnv):
         self._step = 0
         self.half_x, self.half_y = 40.0, 40.0      
         self.max_z = 7                     
-        self.img = np.array(Image.open('unitree_go1/assets/image.png'))
+        self.img = np.array(Image.open('unitree_go1/assets/image.png').convert("L"))
         self.nrow, self.ncol = self.img.shape
         self.direction= self.calc_direction()
         
