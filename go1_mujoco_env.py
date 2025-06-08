@@ -163,7 +163,7 @@ class Go1MujocoEnv(MujocoEnv):
         observation = self._get_obs()
         reward, reward_info = self._calc_reward(action,old_position,time_diff,old_rel_direction)
         # TODO: Consider terminating if knees touch the ground
-        terminated = not self.is_healthy or self.reached
+        terminated = not self.is_healthy[0] or self.reached
         #if terminated and distance_to_goal>1:
             #reward=reward-100
 
@@ -216,10 +216,14 @@ class Go1MujocoEnv(MujocoEnv):
         min_pitch, max_pitch = self._healthy_pitch_range
         is_healthy = is_healthy and min_pitch <= state[5] <= max_pitch
 
+        stillness = False
         if len(self._distance_window) == self._distance_window_size:
             progress = self._distance_window[0] - self._distance_window[-1]
-            is_healthy  = is_healthy and (progress >0.02)
-        return is_healthy
+            is_healthy  = is_healthy and (progress >0.2)
+            if progress<0.2:
+                print("AAAAAAAAAAAAAAAAAAAAAAA")
+                stillness= True
+        return is_healthy, stillness
 
 
     @property
@@ -335,7 +339,7 @@ class Go1MujocoEnv(MujocoEnv):
         #time_eff=(self.distance-new_distance)/max(time_diff,1e-6)
         time_eff=self.calc_vel_objective()
         survival = 0.5 if self.is_healthy else 0.0
-        death_penalty = -5.0 if not self.is_healthy else 0.0
+        death_penalty = -5.0 if not self.is_healthy[0] else 0.0
         if abs(self.relative_direction)>0.2:
             reward= progress+2*orientation_reward+time_eff+survival+death_penalty #was 1*progress and tuime eff
         else: 
@@ -343,6 +347,7 @@ class Go1MujocoEnv(MujocoEnv):
             reward+= self.reward_joint_motion()
         
         reward = reward + 100*self.reached
+        reward = reward -10*is_healthy[1]
          
         reward_info = {
                     "progress": progress,
