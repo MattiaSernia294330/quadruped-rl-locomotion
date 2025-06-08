@@ -339,7 +339,7 @@ class Go1MujocoEnv(MujocoEnv):
         #time_eff=(self.distance-new_distance)/max(time_diff,1e-6)
         time_eff=self.calc_vel_objective()
         survival = 0.5 if self.is_healthy else 0.0
-        death_penalty = -5.0 if not self.is_healthy[0] else 0.0
+        death_penalty = -55.0 if not self.is_healthy[0] else 0.0
         if abs(self.relative_direction)>0.2:
             reward= progress+2*orientation_reward+time_eff+survival+death_penalty #was 1*progress and tuime eff
         else: 
@@ -347,7 +347,7 @@ class Go1MujocoEnv(MujocoEnv):
             reward+= self.reward_joint_motion()
         
         reward = reward + 100*self.reached
-        reward = reward -30*self.is_healthy[1]
+        reward = reward -55*self.is_healthy[1]
          
         reward_info = {
                     "progress": progress,
@@ -406,7 +406,7 @@ class Go1MujocoEnv(MujocoEnv):
         joint_vels = self.data.qvel[6:18]  # 12 motor joints
         forward_joint_ids = [1, 2, 4, 5, 7, 8, 10, 11]
         motion_reward = np.sum(np.abs(joint_vels[forward_joint_ids]))
-        return 0.03 * motion_reward  # scale as needed
+        return 0.001 * motion_reward  # scale as needed
 
     
     def reset_model(self):
