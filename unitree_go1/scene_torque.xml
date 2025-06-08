@@ -27,7 +27,7 @@
               reflectance="0.2"/>
 
     <texture name="mountain_tex" type="2d" file="assets/coloredHM.png"/>
-    <material name="mountain_mat" texture="mountain_tex" texrepeat="1 1" texuniform="true"/>
+    <material name="mountain_mat" texture="mountain_tex" texrepeat="1 1" texuniform="false"/>
 
     <!-- ——— Asset per terreno montano ——— -->
     <hfield name="mountain_hf"
