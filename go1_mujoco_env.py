@@ -406,9 +406,9 @@ class Go1MujocoEnv(MujocoEnv):
 
     def reward_joint_motion(self):
         joint_vels = self.data.qvel[6:18]  # 12 motor joints
-        forward_joint_ids = [1, 2, 4, 5, 7, 8, 10, 11]
+        forward_joint_ids = [1, 2, 4, 5, 11]
         motion_reward = np.sum(np.abs(joint_vels[forward_joint_ids]))
-        return 0.001 * motion_reward  # scale as needed
+        return 0.01 * motion_reward  # scale as needed
 
     
     def reset_model(self):
