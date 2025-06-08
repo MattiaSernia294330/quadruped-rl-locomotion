@@ -26,6 +26,11 @@
               texuniform="true" texrepeat="5 5"
               reflectance="0.2"/>
 
+
+    <!--x il colore-->
+    <texture name="mountain_tex" type="2d" file="colored_HM.png"/>
+    <material name="mountain_mat" texture="mountain_tex" texrepeat="1 1" texuniform="true"/>
+
     <!-- ——— Asset per terreno montano ——— -->
     <hfield name="mountain_hf"
           file="bhutanlake.png"
@@ -38,7 +43,10 @@
     <geom name="mountain_terrain"
           type="hfield"
           hfield="mountain_hf"
+          material="mountain_mat"
           condim="3"/>
+               <!--questa e quella sopra di troppo-->
+
   
     <!-- Goal mobile: può essere spostato da Python -->
     <body name="goal_marker_body" pos="0 0 0.5">
