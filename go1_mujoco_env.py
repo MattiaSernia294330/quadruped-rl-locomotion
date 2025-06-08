@@ -349,7 +349,7 @@ class Go1MujocoEnv(MujocoEnv):
 
         
         reward = reward + 100*self.reached
-        reward = reward -10*self.is_healthy[1]
+        reward = reward -200*self.is_healthy[1]
          
         reward_info = {
                     "progress": progress,
