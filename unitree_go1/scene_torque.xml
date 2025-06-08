@@ -26,7 +26,7 @@
               texuniform="true" texrepeat="5 5"
               reflectance="0.2"/>
 
-    <texture name="mountain_tex" type="2d" file="coloredHM.png"/>
+    <texture name="mountain_tex" type="2d" file="assets/coloredHM.png"/>
     <material name="mountain_mat" texture="mountain_tex" texrepeat="1 1" texuniform="true"/>
 
     <!-- ——— Asset per terreno montano ——— -->
