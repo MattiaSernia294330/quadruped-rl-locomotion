@@ -326,8 +326,9 @@ class Go1MujocoEnv(MujocoEnv):
 
 
     def random_point(self):
-        y = np.random.uniform(-self.half_y/4, self.half_y/4)
-        x = np.random.uniform(-self.half_x/4, self.half_x/4)
+        x = np.random.uniform(-self.half_x/10, self.half_x/10)
+        y = np.random.uniform(-self.half_y/10, self.half_y/10) #was /4 every /10
+        
         return [x,y]
 
     def _calc_reward(self, action, old_position,time_diff,old_rel_direction):
