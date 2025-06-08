@@ -223,6 +223,7 @@ class Go1MujocoEnv(MujocoEnv):
             if progress<0.2:
                 print("AAAAAAAAAAAAAAAAAAAAAAA")
                 stillness= True
+                is_healthy = False
         return is_healthy, stillness
 
 
