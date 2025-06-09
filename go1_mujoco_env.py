@@ -326,8 +326,8 @@ class Go1MujocoEnv(MujocoEnv):
 
 
     def random_point(self):
-        x = np.random.uniform(-self.half_x/4, self.half_x/4)
-        y = np.random.uniform(-self.half_y/4, self.half_y/4) #was /4 every /10
+        x = np.random.uniform(-self.half_x/6.5, self.half_x/6.5)
+        y = np.random.uniform(-self.half_y/6.5, self.half_y/6.5) #was /4 every /10
         
         return [x,y]
     def _calc_reward(self, action, old_position,time_diff,old_rel_direction):
@@ -385,7 +385,7 @@ class Go1MujocoEnv(MujocoEnv):
             -self._clip_obs_threshold, self._clip_obs_threshold
         )
 
-        terrain_window = self.sample_terrain_ahead(window_size=(10,10)).flatten()  # 10x10 grid
+        terrain_window = self.sample_terrain_ahead(window_size=(9,9)).flatten()  # 10x10 grid
 
         curr_obs= np.concatenate([curr_obs, np.array([self.relative_direction]), np.array([self.distance_to_goal/self.max_distance]), terrain_window])
         return curr_obs
