@@ -344,12 +344,12 @@ class Go1MujocoEnv(MujocoEnv):
         time_eff=self.calc_vel_objective()
         survival = 0.1 if self.is_healthy else 0.0
         death_penalty = -10.0 if not self.is_healthy[0] else 0.0
-        if abs(self.relative_direction)>0.2:
+        if abs(self.relative_direction)>0.1:
             reward= progress+2*orientation_reward+time_eff+survival+death_penalty #was 1*progress and tuime eff
         else: 
-            reward= 3*progress+orientation_reward+2.5*time_eff+survival+death_penalty #was 1*progress and tuime eff
-            reward+= self.reward_joint_motion()
-            reward += 0.001 * np.linalg.norm(self.data.qvel)  # or your velocity norm
+            reward= 30*progress+orientation_reward+20.5*time_eff+survival+death_penalty #was 1*progress and tuime eff
+            reward+= 10*self.reward_joint_motion()
+            reward += 0.01 * np.linalg.norm(self.data.qvel)  # or your velocity norm
 
         
         reward = reward + 100*self.reached
