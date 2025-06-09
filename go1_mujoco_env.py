@@ -338,11 +338,8 @@ class Go1MujocoEnv(MujocoEnv):
         new_distance=self.distance_to_goal
         progress=old_distance-new_distance
         orientation_reward=np.cos(self.relative_direction)+(np.cos(self.relative_direction)-np.cos(old_rel_direction))
-        #orientation_reward = 2 * -abs(self.relative_direction)
-        #yaw_rate_penalty = -0.05 * abs(self.data.qvel[5])
-        #time_eff=(self.distance-new_distance)/max(time_diff,1e-6)
         time_eff=self.calc_vel_objective()
-        survival = 0.1 if self.is_healthy else 0.0
+        survival = 0.4 if self.is_healthy else 0.0
         death_penalty = -10.0 if not self.is_healthy[0] else 0.0
         if abs(self.relative_direction)>0.1:
             reward= progress+2*orientation_reward+time_eff+survival+death_penalty #was 1*progress and tuime eff
@@ -386,7 +383,7 @@ class Go1MujocoEnv(MujocoEnv):
             -self._clip_obs_threshold, self._clip_obs_threshold
         )
 
-        terrain_window = self.sample_terrain_ahead(window_size=(9,9)).flatten()  # 5x5 grid
+        terrain_window = self.sample_terrain_ahead(window_size=(10,10)).flatten()  # 10x10 grid
 
         curr_obs= np.concatenate([curr_obs, np.array([self.relative_direction]), np.array([self.distance_to_goal/self.max_distance]), terrain_window])
         return curr_obs
@@ -410,7 +407,7 @@ class Go1MujocoEnv(MujocoEnv):
 
     def reward_joint_motion(self):
         joint_vels = self.data.qvel[6:18]  # 12 motor joints
-        forward_joint_ids = [1, 2, 4, 5, 11]
+        motion_joint_ids = [1, 2, 4, 5, 7, 8, 10, 11]  # exclude all abduction joints
         motion_reward = np.sum(np.abs(joint_vels[forward_joint_ids]))
         return 0.01 * motion_reward  # scale as needed
 
