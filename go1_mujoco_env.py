@@ -160,7 +160,7 @@ class Go1MujocoEnv(MujocoEnv):
         self.relative_direction=self.calc_relative_direction(self.direction)
         reached = self.reached
         if reached:
-            print("OOOOOOOOOOOOOOOOO")
+            print("Quad reached objective")
         time_diff=now-self.start_episode
         observation = self._get_obs()
         reward, reward_info = self._calc_reward(action,old_position,time_diff,old_rel_direction)
@@ -223,7 +223,7 @@ class Go1MujocoEnv(MujocoEnv):
             progress = self._distance_window[0] - self._distance_window[-1]
             is_healthy  = is_healthy and (progress >0.2)
             if progress<0.2:
-                print("AAAAAAAAAAAAAAAAAAAAAAA")
+                print("Dead bcs no progress in last 100 timesteps")
                 stillness= True
                 is_healthy = False
         return is_healthy, stillness
