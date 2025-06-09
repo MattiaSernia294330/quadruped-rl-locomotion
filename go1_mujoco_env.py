@@ -159,8 +159,6 @@ class Go1MujocoEnv(MujocoEnv):
         self.direction=self.calc_direction()
         self.relative_direction=self.calc_relative_direction(self.direction)
         reached = self.reached
-        if reached == True:
-            print("Quad reached objective")
         time_diff=now-self.start_episode
         observation = self._get_obs()
         reward, reward_info = self._calc_reward(action,old_position,time_diff,old_rel_direction)
