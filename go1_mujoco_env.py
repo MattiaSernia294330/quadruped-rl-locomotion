@@ -159,7 +159,7 @@ class Go1MujocoEnv(MujocoEnv):
         self.direction=self.calc_direction()
         self.relative_direction=self.calc_relative_direction(self.direction)
         reached = self.reached
-        if reached:
+        if reached == True:
             print("Quad reached objective")
         time_diff=now-self.start_episode
         observation = self._get_obs()
@@ -344,7 +344,7 @@ class Go1MujocoEnv(MujocoEnv):
         if abs(self.relative_direction)>0.1:
             reward= progress+2*orientation_reward+time_eff+survival+death_penalty #was 1*progress and tuime eff
         else: 
-            reward= 30*progress+orientation_reward+20.5*time_eff+survival+death_penalty #was 1*progress and tuime eff
+            reward= 8*progress+orientation_reward+6*time_eff+survival+death_penalty #was 1*progress and tuime eff
             reward+= 10*self.reward_joint_motion()
             reward += 0.01 * np.linalg.norm(self.data.qvel)  # or your velocity norm
 
