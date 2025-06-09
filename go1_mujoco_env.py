@@ -330,7 +330,6 @@ class Go1MujocoEnv(MujocoEnv):
         y = np.random.uniform(-self.half_y/4, self.half_y/4) #was /4 every /10
         
         return [x,y]
-
     def _calc_reward(self, action, old_position,time_diff,old_rel_direction):
         objective=np.array(self.objective_point)
         old_distance= np.linalg.norm(objective - old_position)
@@ -338,15 +337,18 @@ class Go1MujocoEnv(MujocoEnv):
         new_distance=self.distance_to_goal
         progress=old_distance-new_distance
         orientation_reward=np.cos(self.relative_direction)+(np.cos(self.relative_direction)-np.cos(old_rel_direction))
+        #orientation_reward = 2 * -abs(self.relative_direction)
+        #yaw_rate_penalty = -0.05 * abs(self.data.qvel[5])
+        #time_eff=(self.distance-new_distance)/max(time_diff,1e-6)
         time_eff=self.calc_vel_objective()
-        survival = 0.4 if self.is_healthy else 0.0
+        survival = 0.1 if self.is_healthy else 0.0
         death_penalty = -10.0 if not self.is_healthy[0] else 0.0
-        if abs(self.relative_direction)>0.1:
+        if abs(self.relative_direction)>0.2:
             reward= progress+2*orientation_reward+time_eff+survival+death_penalty #was 1*progress and tuime eff
         else: 
-            reward= 8*progress+orientation_reward+6*time_eff+survival+death_penalty #was 1*progress and tuime eff
-            reward+= 10*self.reward_joint_motion()
-            reward += 0.01 * np.linalg.norm(self.data.qvel)  # or your velocity norm
+            reward= 3*progress+orientation_reward+2.5*time_eff+survival+death_penalty #was 1*progress and tuime eff
+            reward+= self.reward_joint_motion()
+            reward += 0.001 * np.linalg.norm(self.data.qvel)  # or your velocity norm
 
         
         reward = reward + 100*self.reached
@@ -361,7 +363,7 @@ class Go1MujocoEnv(MujocoEnv):
         #reward += 0.001*self.calc_leg_spread_penalty() #was*1
        
         return reward, reward_info
-
+    
 
     def _get_obs(self):
         # The first three indices are the global x,y,z position of the trunk of the robot
@@ -407,7 +409,7 @@ class Go1MujocoEnv(MujocoEnv):
 
     def reward_joint_motion(self):
         joint_vels = self.data.qvel[6:18]  # 12 motor joints
-        motion_joint_ids = [1, 2, 4, 5, 7, 8, 10, 11]  # exclude all abduction joints
+        motion_joint_ids = [1, 2, 4, 5, 11]  # exclude all abduction joints
         motion_reward = np.sum(np.abs(joint_vels[motion_joint_ids]))
         return 0.01 * motion_reward  # scale as needed
 
