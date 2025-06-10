@@ -159,6 +159,8 @@ class Go1MujocoEnv(MujocoEnv):
         self.direction=self.calc_direction()
         self.relative_direction=self.calc_relative_direction(self.direction)
         reached = self.reached
+        if reached:
+            print("OOOOOOOOOOOOOOOOO")
         time_diff=now-self.start_episode
         observation = self._get_obs()
         reward, reward_info = self._calc_reward(action,old_position,time_diff,old_rel_direction)
@@ -221,7 +223,7 @@ class Go1MujocoEnv(MujocoEnv):
             progress = self._distance_window[0] - self._distance_window[-1]
             is_healthy  = is_healthy and (progress >0.2)
             if progress<0.2:
-                print("Dead bcs no progress in last 100 timesteps")
+                
                 stillness= True
                 is_healthy = False
         return is_healthy, stillness
@@ -324,10 +326,11 @@ class Go1MujocoEnv(MujocoEnv):
 
 
     def random_point(self):
-        x = np.random.uniform(-self.half_x/6.5, self.half_x/6.5)
-        y = np.random.uniform(-self.half_y/6.5, self.half_y/6.5) #was /4 every /10
+        x = np.random.uniform(-self.half_x/8, self.half_x/8)
+        y = np.random.uniform(-self.half_y/8, self.half_y/8) #was /4 every /10
         
         return [x,y]
+
     def _calc_reward(self, action, old_position,time_diff,old_rel_direction):
         objective=np.array(self.objective_point)
         old_distance= np.linalg.norm(objective - old_position)
@@ -341,12 +344,13 @@ class Go1MujocoEnv(MujocoEnv):
         time_eff=self.calc_vel_objective()
         survival = 0.1 if self.is_healthy else 0.0
         death_penalty = -10.0 if not self.is_healthy[0] else 0.0
-        if abs(self.relative_direction)>0.2:
-            reward= progress+2*orientation_reward+time_eff+survival+death_penalty #was 1*progress and tuime eff
-        else: 
-            reward= 3*progress+orientation_reward+2.5*time_eff+survival+death_penalty #was 1*progress and tuime eff
-            reward+= self.reward_joint_motion()
-            reward += 0.001 * np.linalg.norm(self.data.qvel)  # or your velocity norm
+        if abs(self.relative_direction) > 0.2:
+            reward = progress + 2 * orientation_reward + time_eff + survival + death_penalty
+        else:
+            reward = 3 * progress + orientation_reward + 2.5 * time_eff + survival + death_penalty
+            reward += self.reward_joint_motion()
+            reward += 0.001 * np.linalg.norm(self.data.qvel)
+
 
         
         reward = reward + 100*self.reached
@@ -361,7 +365,7 @@ class Go1MujocoEnv(MujocoEnv):
         #reward += 0.001*self.calc_leg_spread_penalty() #was*1
        
         return reward, reward_info
-    
+
 
     def _get_obs(self):
         # The first three indices are the global x,y,z position of the trunk of the robot
@@ -383,7 +387,7 @@ class Go1MujocoEnv(MujocoEnv):
             -self._clip_obs_threshold, self._clip_obs_threshold
         )
 
-        terrain_window = self.sample_terrain_ahead(window_size=(9,9)).flatten()  # 10x10 grid
+        terrain_window = self.sample_terrain_ahead(window_size=(9,9)).flatten()  # 5x5 grid
 
         curr_obs= np.concatenate([curr_obs, np.array([self.relative_direction]), np.array([self.distance_to_goal/self.max_distance]), terrain_window])
         return curr_obs
@@ -407,9 +411,10 @@ class Go1MujocoEnv(MujocoEnv):
 
     def reward_joint_motion(self):
         joint_vels = self.data.qvel[6:18]  # 12 motor joints
-        motion_joint_ids = [1, 2, 4, 5, 11]  # exclude all abduction joints
-        motion_reward = np.sum(np.abs(joint_vels[motion_joint_ids]))
+        forward_joint_ids = [1, 2, 4, 5, 11]
+        motion_reward = np.sum(np.abs(joint_vels[forward_joint_ids]))
         return 0.01 * motion_reward  # scale as needed
+
 
     
     def reset_model(self):
