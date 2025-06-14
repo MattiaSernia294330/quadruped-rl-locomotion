@@ -181,6 +181,13 @@ if __name__ == "__main__":
         default="source",
         help="This is the target/ source choice for the UDR",
     )
+    parser.add_argument(
+        "--point",
+        type=str,
+        choices=["fixed","mobile"],
+        default=None,
+        help="This is whether to train/test on a fixed or on a random point ",
+    )
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
 
