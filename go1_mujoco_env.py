@@ -51,6 +51,7 @@ class Go1MujocoEnv(MujocoEnv):
             "render_fps": 60,
         }
         self.environment = kwargs["domain"]
+        self.point_type = kwargs["point"]
         self._distance_window = []
         self._distance_window_size = 100
         self.max_distance=math.sqrt(2)*10
@@ -327,10 +328,10 @@ class Go1MujocoEnv(MujocoEnv):
 
 
     def random_point(self):
+        if self.point ==  "random":
         x = np.random.uniform(-self.half_x/8, self.half_x/8)
         y = np.random.uniform(-self.half_y/8, self.half_y/8) #was /4 every /10
-        
-        return [-3,3]
+        return [x,y] if self.point =="mobile" else [8,0] 
 
     def _calc_reward(self, action, old_position,time_diff,old_rel_direction):
         objective=np.array(self.objective_point)
