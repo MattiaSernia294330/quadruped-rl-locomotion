@@ -160,8 +160,8 @@ class Go1MujocoEnv(MujocoEnv):
         self.direction=self.calc_direction()
         self.relative_direction=self.calc_relative_direction(self.direction)
         reached = self.reached
-        if reached:
-            print("OOOOOOOOOOOOOOOOO")
+        #if reached:
+        #    print("OOOOOOOOOOOOOOOOO")
         time_diff=now-self.start_episode
         observation = self._get_obs()
         reward, reward_info = self._calc_reward(action,old_position,time_diff,old_rel_direction)
@@ -425,6 +425,16 @@ class Go1MujocoEnv(MujocoEnv):
             high=self._reset_noise_scale,
             size=self.model.nq,
         )
+        if self.environment=="source":
+                leg_bodies = ["FR_thigh", "FL_thigh", "RR_thigh", "RL_thigh"]
+                factor=self.random_mass()
+                for name in leg_bodies:
+                    body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, name)
+                    base_mass = self.model.body_mass[body_id]
+                    self.model.body_mass[body_id] = base_mass*factor
+                body_id = "trunk"
+                base_mass = self.model.body_mass[body_id]
+                self.model.body_mass[body_id] = base_mass*factor
         self.data.ctrl[:] = self.model.key_ctrl[
             0
         ] + self._reset_noise_scale * self.np_random.standard_normal(
@@ -521,3 +531,6 @@ class Go1MujocoEnv(MujocoEnv):
         vel_xy = self.data.qvel[:2]
         v_toward_goal = np.dot(vel_xy, goal_dir)
         return v_toward_goal
+    def random_mass(self):
+        random_mult=np.uniform(0.8,1.2)
+        return random_mult
