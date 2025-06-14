@@ -328,7 +328,7 @@ class Go1MujocoEnv(MujocoEnv):
 
 
     def random_point(self):
-        if self.point ==  "mobile":
+        if self.point ==  "random":
         x = np.random.uniform(-self.half_x/8, self.half_x/8)
         y = np.random.uniform(-self.half_y/8, self.half_y/8) #was /4 every /10
         return [x,y] if self.point =="mobile" else [8,0] 
