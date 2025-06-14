@@ -18,7 +18,9 @@ LOG_DIR = "logs"
 def train(args):
     vec_env = make_vec_env(
         Go1MujocoEnv,
-        env_kwargs={"ctrl_type": args.ctrl_type},
+        env_kwargs={"ctrl_type": args.ctrl_type,
+                    "domain": args.domain,
+                    "point": args.point,},
         n_envs=args.num_parallel_envs,
         seed=args.seed,
         vec_env_cls=SubprocVecEnv,
@@ -74,6 +76,8 @@ def test(args):
         # Render the episodes live
         env = Go1MujocoEnv(
             ctrl_type=args.ctrl_type,
+            domain=args.domain,
+            point=args.point,
             render_mode="human",
         )
         inter_frame_sleep = 0.016
@@ -81,6 +85,8 @@ def test(args):
         # Record the episodes
         env = Go1MujocoEnv(
             ctrl_type=args.ctrl_type,
+            domain=args.domain,
+            point=args.point,
             render_mode="rgb_array",
             camera_name="tracking",
             width=1920,

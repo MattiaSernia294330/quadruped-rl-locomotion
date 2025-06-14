@@ -30,7 +30,7 @@ class Go1MujocoEnv(MujocoEnv):
         ],
     }
 
-    def __init__(self, ctrl_type="torque", **kwargs):
+    def __init__(self, ctrl_type="torque",domain=None, point=None, **kwargs):
         model_path = Path(f"./unitree_go1/scene_{ctrl_type}.xml")
         MujocoEnv.__init__(
             self,
@@ -50,8 +50,8 @@ class Go1MujocoEnv(MujocoEnv):
             ],
             "render_fps": 60,
         }
-        self.environment = kwargs["domain"]
-        self.point_type = kwargs["point"]
+        self.environment = domain
+        self.point_type = point
         self._distance_window = []
         self._distance_window_size = 100
         self.max_distance=math.sqrt(2)*10
@@ -328,10 +328,12 @@ class Go1MujocoEnv(MujocoEnv):
 
 
     def random_point(self):
-        if self.point ==  "random":
-        x = np.random.uniform(-self.half_x/8, self.half_x/8)
-        y = np.random.uniform(-self.half_y/8, self.half_y/8) #was /4 every /10
-        return [x,y] if self.point =="mobile" else [8,0] 
+        if self.point_type ==  "random":
+            x = np.random.uniform(-self.half_x/8, self.half_x/8)
+            y = np.random.uniform(-self.half_y/8, self.half_y/8) #was /4 every /10
+            return [x,y]  
+        else:
+            return [8,0] 
 
     def _calc_reward(self, action, old_position,time_diff,old_rel_direction):
         objective=np.array(self.objective_point)
@@ -433,7 +435,7 @@ class Go1MujocoEnv(MujocoEnv):
                     body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, name)
                     base_mass = self.model.body_mass[body_id]
                     self.model.body_mass[body_id] = base_mass*factor
-                body_id = "trunk"
+                body_id = body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "trunk")
                 base_mass = self.model.body_mass[body_id]
                 self.model.body_mass[body_id] = base_mass*factor
         self.data.ctrl[:] = self.model.key_ctrl[
@@ -533,5 +535,5 @@ class Go1MujocoEnv(MujocoEnv):
         v_toward_goal = np.dot(vel_xy, goal_dir)
         return v_toward_goal
     def random_mass(self):
-        random_mult=np.uniform(0.8,1.2)
+        random_mult=np.random.uniform(0.8,1.2)
         return random_mult
