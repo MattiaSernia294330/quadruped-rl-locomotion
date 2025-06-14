@@ -184,7 +184,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--point",
         type=str,
-        choices=["fixed","mobile"],
+        choices=["fixed","random"],
         default=None,
         help="This is whether to train/test on a fixed or on a random point ",
     )
