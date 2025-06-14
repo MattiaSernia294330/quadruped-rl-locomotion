@@ -50,6 +50,7 @@ class Go1MujocoEnv(MujocoEnv):
             ],
             "render_fps": 60,
         }
+        self.environment = kwargs["domain"]
         self._distance_window = []
         self._distance_window_size = 100
         self.max_distance=math.sqrt(2)*10
