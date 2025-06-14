@@ -170,7 +170,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--ctrl_type",
         type=str,
-        choices=["torque", "position"],
+        choices=["torque", "position", "random"],
         default="torque",
         help="Whether the model should control the robot using torque or position control.",
     )
