@@ -170,9 +170,16 @@ if __name__ == "__main__":
     parser.add_argument(
         "--ctrl_type",
         type=str,
-        choices=["torque", "position", "random"],
+        choices=["torque", "position"],
         default="torque",
         help="Whether the model should control the robot using torque or position control.",
+    )
+    parser.add_argument(
+        "--domain",
+        type=str,
+        choices=["source","target"],
+        default="source",
+        help="This is the target/ source choice for the UDR",
     )
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
