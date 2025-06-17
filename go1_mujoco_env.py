@@ -64,7 +64,9 @@ class Go1MujocoEnv(MujocoEnv):
         self.img = np.array(Image.open('unitree_go1/assets/bhutanlake.png'))
         self.nrow, self.ncol = self.img.shape
         self.direction= self.calc_direction()
-        
+        self._base_body_mass     = self.model.body_mass.copy()
+        self._base_body_inertia  = self.model.body_inertia.copy()
+        self._base_actuator_gear = self.model.actuator_gear[:, 0].copy()
 
 
         # Weights for the reward and cost functions
@@ -90,7 +92,7 @@ class Go1MujocoEnv(MujocoEnv):
         self._tracking_velocity_sigma = 0.25
 
         # Metrics used to determine if the episode should be terminated
-        self._healthy_z_range = (0.19, 0.65)
+        self._healthy_z_range = (0.14, 0.65)
         self._healthy_pitch_range = (-np.deg2rad(15), np.deg2rad(15))
         self._healthy_roll_range = (-np.deg2rad(15), np.deg2rad(15))
 
@@ -213,7 +215,7 @@ class Go1MujocoEnv(MujocoEnv):
         min_z=min_z+self.get_maps_z(state[0],state[1])+0.001
 
         is_healthy = np.isfinite(state).all() and min_z <= state[2] 
-
+        #print(min_z <= state[2])
         min_roll, max_roll = self._healthy_roll_range
         is_healthy = is_healthy and min_roll <= state[4] <= max_roll
 
@@ -221,6 +223,7 @@ class Go1MujocoEnv(MujocoEnv):
         is_healthy = is_healthy and min_pitch <= state[5] <= max_pitch
 
         stillness = False
+
         if len(self._distance_window) == self._distance_window_size:
             progress = self._distance_window[0] - self._distance_window[-1]
             is_healthy  = is_healthy and (progress >0.2)
@@ -348,12 +351,20 @@ class Go1MujocoEnv(MujocoEnv):
         time_eff=self.calc_vel_objective()
         survival = 0.1 if self.is_healthy else 0.0
         death_penalty = -10.0 if not self.is_healthy[0] else 0.0
-        if abs(self.relative_direction) > 0.2:
-            reward = progress + 2 * orientation_reward + time_eff + survival + death_penalty
+        if self.point_type=="fixed":
+            if abs(self.relative_direction) > 0.2:
+                reward = progress + 2 * orientation_reward + time_eff + survival + death_penalty
+            else:
+                reward = 3 * progress + 2.5 * time_eff + survival + death_penalty
+                reward += self.reward_joint_motion()
+                reward += 0.001 * np.linalg.norm(self.data.qvel)
         else:
-            reward = 3 * progress + orientation_reward + 2.5 * time_eff + survival + death_penalty
-            reward += self.reward_joint_motion()
-            reward += 0.001 * np.linalg.norm(self.data.qvel)
+            if abs(self.relative_direction) > 0.2:
+                reward = progress + 2 * orientation_reward + time_eff + survival + death_penalty
+            else:
+                reward = 3 * progress + orientation_reward + 2.5 * time_eff + survival + death_penalty
+                reward += self.reward_joint_motion()
+                reward += 0.001 * np.linalg.norm(self.data.qvel)
 
 
         
@@ -422,22 +433,16 @@ class Go1MujocoEnv(MujocoEnv):
 
     
     def reset_model(self):
+        if self.environment=="source":
+            self.restore_physical_props()
+            self.random_mass()
         # Reset the position and control values with noise
         self.data.qpos[:] = self.model.key_qpos[0] + self.np_random.uniform(
             low=-self._reset_noise_scale,
             high=self._reset_noise_scale,
             size=self.model.nq,
         )
-        if self.environment=="source":
-                leg_bodies = ["FR_thigh", "FL_thigh", "RR_thigh", "RL_thigh"]
-                factor=self.random_mass()
-                for name in leg_bodies:
-                    body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, name)
-                    base_mass = self.model.body_mass[body_id]
-                    self.model.body_mass[body_id] = base_mass*factor
-                body_id = body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "trunk")
-                base_mass = self.model.body_mass[body_id]
-                self.model.body_mass[body_id] = base_mass*factor
+                
         self.data.ctrl[:] = self.model.key_ctrl[
             0
         ] + self._reset_noise_scale * self.np_random.standard_normal(
@@ -535,5 +540,19 @@ class Go1MujocoEnv(MujocoEnv):
         v_toward_goal = np.dot(vel_xy, goal_dir)
         return v_toward_goal
     def random_mass(self):
-        random_mult=np.random.uniform(0.8,1.2)
-        return random_mult
+        factor=np.random.uniform(0.8,1.2)
+        self.model.body_mass[:]    *= factor
+
+        # 2) inerzie (≈ m·r²) → factor^(5/3) se il solido resta in scala omotetica
+        self.model.body_inertia[:] *= factor ** (5/3)
+
+        # 3) forza motori
+        self.model.actuator_gear[:, 0] *= factor
+
+        # 5) aggiorna lo stato interno di MuJoCo
+        mujoco.mj_forward(self.model, self.data)
+    def restore_physical_props(self):
+        self.model.body_mass[:]        = self._base_body_mass
+        self.model.body_inertia[:]     = self._base_body_inertia
+        self.model.actuator_gear[:, 0] = self._base_actuator_gear
+        mujoco.mj_forward(self.model, self.data)
