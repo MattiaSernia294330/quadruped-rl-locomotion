@@ -41,6 +41,11 @@ class Go1MujocoEnv(MujocoEnv):
             **kwargs,
         )
 
+        self.progress_weight = 1.0
+        self.orientation_weight = 1.0
+
+
+
         # Update metadata to include the render FPS
         self.metadata = {
             "render_modes": [
@@ -155,6 +160,12 @@ class Go1MujocoEnv(MujocoEnv):
         self._step += 1
         self.do_simulation(action, self.frame_skip)
         self.distance_to_goal = np.linalg.norm(self.objective_point - self.data.qpos[0:2])
+        
+        new_position = self.data.qpos[0:2]
+        current_distance_to_goal = np.linalg.norm(self.objective_point - new_position)
+        delta = self.initial_distance_to_goal - current_distance_to_goal
+        print(f"[Step {self._step}] delta_dist: {delta:.4f} | start: {self.initial_distance_to_goal:.4f} | now: {current_distance_to_goal:.4f}")
+
 
         self._distance_window.append(self.distance_to_goal)
         if len(self._distance_window) > self._distance_window_size:
@@ -353,16 +364,16 @@ class Go1MujocoEnv(MujocoEnv):
         death_penalty = -10.0 if not self.is_healthy[0] else 0.0
         if self.point_type=="fixed":
             if abs(self.relative_direction) > 0.2:
-                reward = progress + 2 * orientation_reward + time_eff + survival + death_penalty
+                reward = self.progress_weight * progress + self.orientation_weight * orientation_reward + time_eff + survival + death_penalty
             else:
-                reward = 3 * progress + 2.5 * time_eff + survival + death_penalty
+                reward = self.progress_weight * progress + self.orientation_weight * orientation_reward + 2.5 * time_eff + survival + death_penalty
                 reward += self.reward_joint_motion()
                 reward += 0.001 * np.linalg.norm(self.data.qvel)
         else:
             if abs(self.relative_direction) > 0.2:
-                reward = progress + 2 * orientation_reward + time_eff + survival + death_penalty
+                reward = self.progress_weight * progress + self.orientation_weight * orientation_reward + time_eff + survival + death_penalty
             else:
-                reward = 3 * progress + orientation_reward + 2.5 * time_eff + survival + death_penalty
+                reward = self.progress_weight * progress + self.orientation_weight * orientation_reward + 2.5 * time_eff + survival + death_penalty
                 reward += self.reward_joint_motion()
                 reward += 0.001 * np.linalg.norm(self.data.qvel)
 
@@ -449,7 +460,7 @@ class Go1MujocoEnv(MujocoEnv):
             *self.data.ctrl.shape
         )
         self.objective_point = self.random_point()  # If you want a new one each episode
-        self.distance=np.linalg.norm(self.objective_point-np.array([0,0]))
+        self.initial_distance_to_goal=np.linalg.norm(self.objective_point-np.array([0,0]))
         self.distance_to_goal=np.linalg.norm(self.objective_point-np.array([0,0]))
         self.direction= self.calc_direction()
         self.relative_direction=self.calc_relative_direction(self.direction)
