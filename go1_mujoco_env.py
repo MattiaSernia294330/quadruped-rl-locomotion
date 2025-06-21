@@ -345,7 +345,7 @@ class Go1MujocoEnv(MujocoEnv):
             y = np.random.uniform(-self.half_y/8, self.half_y/8) #was /4 every /10
             return [x,y]  
         else:
-            return [8,0] 
+            return [10,10] 
 
     def _calc_reward(self, action, old_position,time_diff,old_rel_direction):
         objective=np.array(self.objective_point)
