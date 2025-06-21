@@ -126,7 +126,7 @@ class Go1MujocoEnv(MujocoEnv):
         self._last_action = np.zeros(12)
         self.objective_point=self.random_point()
         self.relative_direction=self.calc_relative_direction(self.direction)
-        self.distance=np.linalg.norm(self.objective_point-np.array([0,0]))
+        self.initial_distance_to_goal=np.linalg.norm(self.objective_point-np.array([0,0]))
         self.distance_to_goal=np.linalg.norm(self.objective_point-np.array([0,0]))
         self._clip_obs_threshold = 100.0
         self.observation_space = spaces.Box(
@@ -161,11 +161,6 @@ class Go1MujocoEnv(MujocoEnv):
         self.do_simulation(action, self.frame_skip)
         self.distance_to_goal = np.linalg.norm(self.objective_point - self.data.qpos[0:2])
         
-        new_position = self.data.qpos[0:2]
-        current_distance_to_goal = np.linalg.norm(self.objective_point - new_position)
-        delta = self.initial_distance_to_goal - current_distance_to_goal
-        print(f"[Step {self._step}] delta_dist: {delta:.4f} | start: {self.initial_distance_to_goal:.4f} | now: {current_distance_to_goal:.4f}")
-
 
         self._distance_window.append(self.distance_to_goal)
         if len(self._distance_window) > self._distance_window_size:
@@ -444,6 +439,8 @@ class Go1MujocoEnv(MujocoEnv):
 
     
     def reset_model(self):
+        delta = self.initial_distance_to_goal - self.distance_to_goal
+        print(f"delta_dist: {delta:.4f} | start: {self.initial_distance_to_goal:.4f} | now: {self.distance_to_goal:.4f}")
         if self.environment=="source":
             self.restore_physical_props()
             self.random_mass()
