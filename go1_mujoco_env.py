@@ -176,6 +176,9 @@ class Go1MujocoEnv(MujocoEnv):
         reward, reward_info = self._calc_reward(action,old_position,time_diff,old_rel_direction)
         # TODO: Consider terminating if knees touch the ground
         terminated = not self.is_healthy[0] or self.reached
+        if terminated:
+            delta = self.initial_distance_to_goal - self.distance_to_goal
+            print(f"delta_dist: {delta:.4f} | start: {self.initial_distance_to_goal:.4f} | now: {self.distance_to_goal:.4f}")
         #if terminated and distance_to_goal>1:
             #reward=reward-100
 
@@ -439,8 +442,6 @@ class Go1MujocoEnv(MujocoEnv):
 
     
     def reset_model(self):
-        delta = self.initial_distance_to_goal - self.distance_to_goal
-        print(f"delta_dist: {delta:.4f} | start: {self.initial_distance_to_goal:.4f} | now: {self.distance_to_goal:.4f}")
         if self.environment=="source":
             self.restore_physical_props()
             self.random_mass()
