@@ -187,7 +187,7 @@ class Go1MujocoEnv(MujocoEnv):
         terminated = not self.is_healthy[0] or self.reached
         if terminated:
             delta = self.initial_distance_to_goal - self.distance_to_goal
-            print(f"delta_dist: {delta:.4f} | start: {self.initial_distance_to_goal:.4f} | now: {self.distance_to_goal:.4f}")
+            #print(f"delta_dist: {delta:.4f} | start: {self.initial_distance_to_goal:.4f} | now: {self.distance_to_goal:.4f}")
         #if terminated and distance_to_goal>1:
             #reward=reward-100
 
