@@ -72,22 +72,31 @@ class Go1MujocoEnv(MujocoEnv):
         self._base_body_mass     = self.model.body_mass.copy()
         self._base_body_inertia  = self.model.body_inertia.copy()
         self._base_actuator_gear = self.model.actuator_gear[:, 0].copy()
+        if point=="fixed":
+            self.reward_weights = {
+                "progress":1,
+                "orientation":2,
+                "time_eff":1,
+                "survival":1,
+                "death":1,
+                "progress_post":3,
+                "orientation_post":0,
+                "time_eff_post":2.5,
+                "survival_post":1,
+                "death_post":1}
+        else:
+            self.reward_weights = {
+                "progress":1,
+                "orientation":2,
+                "time_eff":1,
+                "survival":1,
+                "death":1,
+                "progress_post":3,
+                "orientation_post":1,
+                "time_eff_post":2.5,
+                "survival_post":1,
+                "death_post":1}
 
-
-        # Weights for the reward and cost functions
-        self.reward_weights = {
-            "linear_vel_tracking": 2.0,  # Was 1.0
-            "angular_vel_tracking": 0.5,
-            "healthy": 0.0,  # was 0.05
-            "feet_airtime": 1.0,
-        }
-        self.cost_weights = {
-            "torque": 0.0002,
-            "vertical_vel": 0.5,  # Was 1.0
-            "xy_angular_vel": 0.02,  # Was 0.05
-            "action_rate": 0.01,
-            "joint_limit": 10.0,
-        }
 
         # vx (m/s), vy (m/s), wz (rad/s)
         self._desired_velocity_min = np.array([-0.5, -0.6, -0.6])
@@ -354,29 +363,15 @@ class Go1MujocoEnv(MujocoEnv):
         new_distance=self.distance_to_goal
         progress=old_distance-new_distance
         orientation_reward=np.cos(self.relative_direction)+(np.cos(self.relative_direction)-np.cos(old_rel_direction))
-        #orientation_reward = 2 * -abs(self.relative_direction)
-        #yaw_rate_penalty = -0.05 * abs(self.data.qvel[5])
-        #time_eff=(self.distance-new_distance)/max(time_diff,1e-6)
         time_eff=self.calc_vel_objective()
         survival = 0.1 if self.is_healthy else 0.0
         death_penalty = -10.0 if not self.is_healthy[0] else 0.0
-        if self.point_type=="fixed":
-            if abs(self.relative_direction) > 0.2:
-                reward = self.progress_weight * progress + self.orientation_weight * orientation_reward + time_eff + survival + death_penalty
-            else:
-                reward = self.progress_weight * progress + self.orientation_weight * orientation_reward + 2.5 * time_eff + survival + death_penalty
-                reward += self.reward_joint_motion()
-                reward += 0.001 * np.linalg.norm(self.data.qvel)
+        if abs(self.relative_direction) > 0.2:
+            reward = self.reward_weights["progress"] * progress + self.reward_weights["orientation"] * orientation_reward + self.reward_weights["time_eff"]*time_eff + self.reward_weights["survival"]*survival + self.reward_weights["death"]*death_penalty
         else:
-            if abs(self.relative_direction) > 0.2:
-                reward = self.progress_weight * progress + self.orientation_weight * orientation_reward + time_eff + survival + death_penalty
-            else:
-                reward = self.progress_weight * progress + self.orientation_weight * orientation_reward + 2.5 * time_eff + survival + death_penalty
-                reward += self.reward_joint_motion()
-                reward += 0.001 * np.linalg.norm(self.data.qvel)
-
-
-        
+            reward = self.reward_weights["progress_post"] * progress + self.reward_weights["orientation_post"] * orientation_reward + self.reward_weights["time_eff_post"]*time_eff + self.reward_weights["survival_post"]*survival + self.reward_weights["death_post"]*death_penalty
+            reward += self.reward_joint_motion()
+            reward += 0.001 * np.linalg.norm(self.data.qvel)
         reward = reward + 100*self.reached
         reward = reward -200*self.is_healthy[1]
          
