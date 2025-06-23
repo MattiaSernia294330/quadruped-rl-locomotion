@@ -117,12 +117,6 @@ def test(args):
             # Slow down the rendering
             time.sleep(inter_frame_sleep)
 
-            if terminated or truncated:
-                print(f"{ep_len=}  {ep_reward=}")
-                break
-
-        total_length += ep_len
-        total_reward += ep_reward
 
     print(
         f"Avg episode reward: {total_reward / num_episodes}, avg episode length: {total_length / num_episodes}"
