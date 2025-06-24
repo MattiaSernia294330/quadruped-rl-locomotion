@@ -100,26 +100,38 @@ def test(args):
     model = PPO.load(path=model_path, env=env, verbose=1)
 
     num_episodes = args.num_test_episodes
-    total_reward = 0
     total_length = 0
+    total_reached=0
+    total_percentage=0
     for _ in tqdm(range(num_episodes)):
         obs, _ = env.reset()
         env.render()
 
         ep_len = 0
         ep_reward = 0
+
         while True:
             action, _ = model.predict(obs, deterministic=True)
             obs, reward, terminated, truncated, info = env.step(action)
             ep_reward += reward
             ep_len += 1
+            if terminated or truncated:
+                print(f"{ep_len} {ep_reward}")
+                if info["reached"]:
+                    total_reached+=1
+                    total_percentage+=1
+                else:
+                    total_percentage+=info["percentage"]
+                total_length+=ep_len
+                break
+
 
             # Slow down the rendering
             time.sleep(inter_frame_sleep)
 
 
     print(
-        f"Avg episode reward: {total_reward / num_episodes}, avg episode length: {total_length / num_episodes}"
+        f"Avg reached episode: {total_reached / num_episodes}, avg percentage distance: {total_percentage / num_episodes} ,avg episode length: {total_length / num_episodes}"
     )
 
 

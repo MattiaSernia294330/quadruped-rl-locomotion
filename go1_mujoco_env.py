@@ -68,16 +68,16 @@ class Go1MujocoEnv(MujocoEnv):
         self._velocity_scale = np.array([2.0, 2.0, 0.25])
         if point=="fixed":
             self.reward_weights = {
-                "progress":1.5,
-                "orientation":2,
-                "time_eff":1,
-                "survival":1,
-                "death":1,
-                "progress_post":3,
-                "orientation_post":2,
-                "time_eff_post":2.5,
-                "survival_post":1,
-                "death_post":1}
+                "progress":3,
+                "orientation":0.5,
+                "time_eff":0.5,
+                "survival":0.5,
+                "death":2,
+                "progress_post":5,
+                "orientation_post":0.5,
+                "time_eff_post":1.5,
+                "survival_post":0.5,
+                "death_post":2}
         else:
             self.reward_weights = {
                 "progress":3,
@@ -138,17 +138,22 @@ class Go1MujocoEnv(MujocoEnv):
             self._distance_window.pop(0)
         self.direction=self.calc_direction()
         self.relative_direction=self.calc_relative_direction(self.direction)
+        reached = self.reached
         observation = self._get_obs()
         reward, reward_info = self._calc_reward(old_position,old_rel_direction)
         terminated = not self.is_healthy[0] or self.reached
+        percentage=0
         if terminated:
             delta = self.initial_distance_to_goal - self.distance_to_goal
+            percentage=delta/self.initial_distance_to_goal
             #print(f"delta_dist: {delta:.4f} | start: {self.initial_distance_to_goal:.4f} | now: {self.distance_to_goal:.4f} | percentage: {delta/self.initial_distance_to_goal:.4f}")
         truncated = self._step >= (self._max_episode_time_sec / self.dt)
         info = {
             "x_position": self.data.qpos[0],
             "y_position": self.data.qpos[1],
             "distance_from_origin": np.linalg.norm(self.data.qpos[0:2], ord=2),
+            "reached":reached,
+            "percentage":percentage,
             **reward_info,
         }
 
@@ -200,8 +205,8 @@ class Go1MujocoEnv(MujocoEnv):
 
     def random_point(self):
         if self.point_type ==  "random":
-            x = np.random.uniform(-self.half_x/8, self.half_x/8)
-            y = np.random.uniform(-self.half_y/8, self.half_y/8)
+            x = np.random.uniform(-self.half_x/4, self.half_x/4)
+            y = np.random.uniform(-self.half_y/4, self.half_y/4)
             return [x,y]  
         else:
             return [10,10] 
