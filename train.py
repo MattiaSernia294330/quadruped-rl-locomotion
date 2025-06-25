@@ -102,6 +102,7 @@ def test(args):
     num_episodes = args.num_test_episodes
     total_length = 0
     total_reached=0
+    total_reward=0
     total_percentage=0
     for _ in tqdm(range(num_episodes)):
         obs, _ = env.reset()
@@ -123,6 +124,7 @@ def test(args):
                 else:
                     total_percentage+=info["percentage"]
                 total_length+=ep_len
+                total_reward+=ep_reward
                 break
 
 
@@ -131,7 +133,7 @@ def test(args):
 
 
     print(
-        f"Avg reached episode: {total_reached / num_episodes}, avg percentage distance: {total_percentage / num_episodes} ,avg episode length: {total_length / num_episodes}"
+        f"Avg reached episode: {total_reached / num_episodes}, avg percentage distance: {total_percentage / num_episodes}, avg episode length: {total_length / num_episodes}, avg episode reward: {total_reward / num_episodes}"
     )
 
 
