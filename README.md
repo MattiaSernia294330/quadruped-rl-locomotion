@@ -14,6 +14,8 @@ Furthermore, the best trained models can be found in the folder **models**.
 
 ## Bash command to test models 
 
+> **Note**: Prior installation of all required dependencies is assumed.
+
 ```bash
 python train.py --run test --model_path <path to model zip file> --domain target --point {fixed, random} 
 ```
