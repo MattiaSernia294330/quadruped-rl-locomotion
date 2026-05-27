@@ -221,9 +221,19 @@ class Go1MujocoEnv(MujocoEnv):
         survival = 0.1 if self.is_healthy else 0.0
         death_penalty = -10.0 if not self.is_healthy[0] else 0.0
         if abs(self.relative_direction) > 0.2:
-            reward = self.reward_weights["progress"] * progress + self.reward_weights["orientation"] * orientation_reward + self.reward_weights["time_eff"]*time_eff + self.reward_weights["survival"]*survival + self.reward_weights["death"]*death_penalty
+            reward = self.reward_weights["progress"] * progress +
+             self.reward_weights["orientation"] * orientation_reward + 
+            self.reward_weights["time_eff"]*time_eff + 
+            self.reward_weights["survival"]*survival + 
+            self.reward_weights["death"]*death_penalty
+            
         else:
-            reward = self.reward_weights["progress_post"] * progress + self.reward_weights["orientation_post"] * orientation_reward + self.reward_weights["time_eff_post"]*time_eff + self.reward_weights["survival_post"]*survival + self.reward_weights["death_post"]*death_penalty
+            reward = self.reward_weights["progress_post"] * progress +
+            self.reward_weights["orientation_post"] * orientation_reward +
+            self.reward_weights["time_eff_post"]*time_eff +
+            self.reward_weights["survival_post"]*survival +
+            self.reward_weights["death_post"]*death_penalty
+            
             reward += self.reward_joint_motion()
             reward += 0.001 * np.linalg.norm(self.data.qvel)
         reward = reward + 100*self.reached
@@ -325,6 +335,7 @@ class Go1MujocoEnv(MujocoEnv):
         p = self.img[i, j]
         h_rel = p / 65535.0
         return h_rel * self.max_z
+        
     def calc_direction(self): 
         mat = np.zeros(9, dtype=np.float64)
         quat = self.data.qpos[3:7].astype(np.float64)
@@ -337,6 +348,7 @@ class Go1MujocoEnv(MujocoEnv):
         direction_xy /= norm
 
         return direction_xy
+        
     def calc_relative_direction(self,direction):
         vec_to_target = self.objective_point - self.data.qpos[0:2]
         norm = np.linalg.norm(vec_to_target)
@@ -347,18 +359,21 @@ class Go1MujocoEnv(MujocoEnv):
         cross_z = direction[0] * vec_to_target[1] - direction[1] * vec_to_target[0]
         theta = math.atan2(cross_z, dot_val)
         return theta
+        
     def calc_vel_objective(self):
         goal_vec = self.objective_point - self.data.qpos[:2]        
         goal_dir = goal_vec / (np.linalg.norm(goal_vec) + 1e-8)
         vel_xy = self.data.qvel[:2]
         v_toward_goal = np.dot(vel_xy, goal_dir)
         return v_toward_goal
+        
     def random_mass(self):
         factor=np.random.uniform(0.8,1.2)
         self.model.body_mass[:]    *= factor
         self.model.body_inertia[:] *= factor ** (5/3)
         self.model.actuator_gear[:, 0] *= factor
         mujoco.mj_forward(self.model, self.data)
+        
     def restore_physical_props(self):
         self.model.body_mass[:]        = self._base_body_mass
         self.model.body_inertia[:]     = self._base_body_inertia
